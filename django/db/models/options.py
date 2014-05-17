@@ -378,13 +378,19 @@ class Options(object):
         """
         Returns the requested field by name. Raises FieldDoesNotExist on error.
         """
-        to_search = (self.fields + self.many_to_many) if many_to_many else self.fields
-        for f in to_search:
-            if f.name == name:
-                return f
-        raise FieldDoesNotExist('%s has no field named %r' % (self.object_name, name))
+        #if name == "authors":
+            #import ipdb; ipdb.set_trace()
+        field_object, model, direct, m2m = self.get_field_by_name(name, only_local=True)
+        if not many_to_many and m2m:
+            raise FieldDoesNotExist('%s has no field named %r' % (self.object_name, name))
+        return field_object
+        #to_search = (self.fields + self.many_to_many) if many_to_many else self.fields
+        #for f in to_search:
+            #if f.name == name:
+                #return f
+        #raise FieldDoesNotExist('%s has no field named %r' % (self.object_name, name))
 
-    def get_field_by_name(self, name):
+    def get_field_by_name(self, name, only_local=False):
         """
         Returns the (field_object, model, direct, m2m), where field_object is
         the Field instance for the given name, model is the model containing
@@ -400,7 +406,7 @@ class Options(object):
             try:
                 return self._name_map[name]
             except AttributeError:
-                cache = self.init_name_map()
+                cache = self.init_name_map(only_local)
                 return cache[name]
         except KeyError:
             raise FieldDoesNotExist('%s has no field named %r'
@@ -422,25 +428,27 @@ class Options(object):
         # the main example). Trim them.
         return [val for val in names if not val.endswith('+')]
 
-    def init_name_map(self):
+    def init_name_map(self, only_local=False):
         """
         Initialises the field name -> field object mapping.
         """
         cache = {}
         # We intentionally handle related m2m objects first so that symmetrical
         # m2m accessor names can be overridden, if necessary.
-        for f, model in self.get_all_related_m2m_objects_with_model():
-            cache[f.field.related_query_name()] = (f, model, False, True)
-        for f, model in self.get_all_related_objects_with_model():
-            cache[f.field.related_query_name()] = (f, model, False, False)
+        if not only_local:
+            for f, model in self.get_all_related_m2m_objects_with_model():
+                cache[f.field.related_query_name()] = (f, model, False, True)
+            for f, model in self.get_all_related_objects_with_model():
+                cache[f.field.related_query_name()] = (f, model, False, False)
         for f, model in self.get_m2m_with_model():
             cache[f.name] = cache[f.attname] = (f, model, True, True)
         for f, model in self.get_fields_with_model():
             cache[f.name] = cache[f.attname] = (f, model, True, False)
-        for f in self.virtual_fields:
-            cache[f.name] = (f, None if f.model == self.model else f.model, True, False)
-        if apps.ready:
-            self._name_map = cache
+        if not only_local:
+            for f in self.virtual_fields:
+                cache[f.name] = (f, None if f.model == self.model else f.model, True, False)
+            if apps.ready:
+                self._name_map = cache
         return cache
 
     def get_all_related_objects(self, local_only=False, include_hidden=False,

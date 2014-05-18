@@ -10,7 +10,7 @@ from django.db.models.fields import AutoField, FieldDoesNotExist
 from django.db.models.fields.proxy import OrderWrt
 from django.utils import six
 from django.utils.encoding import force_text, smart_text, python_2_unicode_compatible
-from django.utils.functional import cached_property
+from django.utils.functional import cached_property, conditional_cached_property
 from django.utils.text import camel_case_to_spaces
 from django.utils.translation import activate, deactivate_all, get_language, string_concat
 
@@ -498,10 +498,7 @@ class Options(object):
         self._related_objects_proxy_cache = proxy_cache
 
     def get_all_related_many_to_many_objects(self, local_only=False):
-        try:
-            cache = self._related_many_to_many_cache
-        except AttributeError:
-            cache = self._fill_related_many_to_many_cache()
+        cache = self._related_many_to_many_cache
         if local_only:
             return [k for k, v in cache.items() if not v]
         return list(cache)
@@ -511,33 +508,29 @@ class Options(object):
         Returns a list of (related-m2m-object, model) pairs. Similar to
         get_fields_with_model().
         """
-        try:
-            cache = self._related_many_to_many_cache
-        except AttributeError:
-            cache = self._fill_related_many_to_many_cache()
+        cache = self._related_many_to_many_cache
         return list(six.iteritems(cache))
 
-    def _fill_related_many_to_many_cache(self):
-        cache = OrderedDict()
+    @conditional_cached_property
+    def _related_many_to_many_cache(self):
+        result = OrderedDict()
         parent_list = self.get_parent_list()
         for parent in self.parents:
             for obj, model in parent._meta.get_all_related_m2m_objects_with_model():
                 if obj.field.creation_counter < 0 and obj.model not in parent_list:
                     continue
                 if not model:
-                    cache[obj] = parent
+                    result[obj] = parent
                 else:
-                    cache[obj] = model
+                    result[obj] = model
         for klass in self.apps.get_models():
             if not klass._meta.swapped:
                 for f in klass._meta.local_many_to_many:
                     if (f.rel
                             and not isinstance(f.rel.to, six.string_types)
                             and self == f.rel.to._meta):
-                        cache[f.related] = None
-        if apps.ready:
-            self._related_many_to_many_cache = cache
-        return cache
+                        result[f.related] = None
+        return apps.ready, result
 
     def get_base_chain(self, model):
         """

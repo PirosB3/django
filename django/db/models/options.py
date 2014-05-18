@@ -198,6 +198,8 @@ class Options(object):
             self.local_many_to_many.insert(bisect(self.local_many_to_many, field), field)
             if hasattr(self, '_m2m_cache'):
                 del self._m2m_cache
+            if hasattr(self, 'm2m_with_model'):
+                del self.m2m_with_model
         else:
             self.local_fields.insert(bisect(self.local_fields, field), field)
             self.setup_pk(field)

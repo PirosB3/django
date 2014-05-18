@@ -344,35 +344,29 @@ class Options(object):
         self._field_cache = tuple(cache)
         self._field_name_cache = [x for x, _ in cache]
 
-    def _many_to_many(self):
-        try:
-            self._m2m_cache
-        except AttributeError:
-            self._fill_m2m_cache()
+    @cached_property
+    def many_to_many(self):
         return list(self._m2m_cache)
-    many_to_many = property(_many_to_many)
 
-    def get_m2m_with_model(self):
+    @cached_property
+    def m2m_with_model(self):
         """
         The many-to-many version of get_fields_with_model().
         """
-        try:
-            self._m2m_cache
-        except AttributeError:
-            self._fill_m2m_cache()
         return list(six.iteritems(self._m2m_cache))
 
-    def _fill_m2m_cache(self):
+    @cached_property
+    def _m2m_cache(self):
         cache = OrderedDict()
         for parent in self.parents:
-            for field, model in parent._meta.get_m2m_with_model():
+            for field, model in parent._meta.m2m_with_model:
                 if model:
                     cache[field] = model
                 else:
                     cache[field] = parent
         for field in self.local_many_to_many:
             cache[field] = None
-        self._m2m_cache = cache
+        return cache
 
     def get_field(self, name, many_to_many=True):
         """
@@ -440,7 +434,7 @@ class Options(object):
                 cache[f.field.related_query_name()] = (f, model, False, True)
             for f, model in self.get_all_related_objects_with_model():
                 cache[f.field.related_query_name()] = (f, model, False, False)
-        for f, model in self.get_m2m_with_model():
+        for f, model in self.m2m_with_model:
             cache[f.name] = cache[f.attname] = (f, model, True, True)
         for f, model in self.get_fields_with_model():
             cache[f.name] = cache[f.attname] = (f, model, True, False)

@@ -633,7 +633,8 @@ class SQLCompiler(object):
             else:
                 restricted = False
 
-        for f, model in opts.get_fields_with_model():
+        field_cache, field_name_cache = opts.fields_with_model
+        for f, model in field_cache:
             # The get_fields_with_model() returns None for fields that live
             # in the field's local model. So, for those fields we want to use
             # the f.model - that is the field's local model.

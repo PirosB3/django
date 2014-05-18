@@ -614,7 +614,8 @@ class Query(object):
             # models.
             workset = {}
             for model, values in six.iteritems(seen):
-                for field, m in model._meta.get_fields_with_model():
+                field_cache, field_name_cache = self.model._meta.fields_with_model
+                for field, m in field_cache:
                     if field in values:
                         continue
                     add_to_dict(workset, m or model, field)
@@ -934,7 +935,8 @@ class Query(object):
         root_alias = self.tables[0]
         seen = {None: root_alias}
 
-        for field, model in opts.get_fields_with_model():
+        field_cache, field_name_cache = opts.fields_with_model
+        for field, model in field_cache:
             if model not in seen:
                 self.join_parent_model(opts, model, root_alias, seen)
         self.included_inherited_models = seen

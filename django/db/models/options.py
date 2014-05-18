@@ -189,6 +189,11 @@ class Options(object):
                         auto_created=True)
                 model.add_to_class('id', auto)
 
+    def purge_cache(self, *fields):
+        for field in fields:
+            if hasattr(self, field):
+                delattr(self, field)
+
     def add_field(self, field):
         # Insert the given field in the order in which it was created, using
         # the "creation_counter" attribute of the field.
@@ -203,25 +208,24 @@ class Options(object):
         else:
             self.local_fields.insert(bisect(self.local_fields, field), field)
             self.setup_pk(field)
-            if hasattr(self, '_field_cache'):
-                del self._field_cache
-                del self._field_name_cache
-                # The fields, concrete_fields and local_concrete_fields are
-                # implemented as cached properties for performance reasons.
-                # The attrs will not exists if the cached property isn't
-                # accessed yet, hence the try-excepts.
-                try:
-                    del self.fields
-                except AttributeError:
-                    pass
-                try:
-                    del self.concrete_fields
-                except AttributeError:
-                    pass
-                try:
-                    del self.local_concrete_fields
-                except AttributeError:
-                    pass
+            if hasattr(self, 'fields_with_model'):
+                del self.fields_with_model
+            # The fields, concrete_fields and local_concrete_fields are
+            # implemented as cached properties for performance reasons.
+            # The attrs will not exists if the cached property isn't
+            # accessed yet, hence the try-excepts.
+            try:
+                del self.fields
+            except AttributeError:
+                pass
+            try:
+                del self.concrete_fields
+            except AttributeError:
+                pass
+            try:
+                del self.local_concrete_fields
+            except AttributeError:
+                pass
 
         if hasattr(self, '_name_map'):
             del self._name_map
@@ -304,11 +308,8 @@ class Options(object):
         Callers are not permitted to modify this list, since it's a reference
         to this instance (not a copy).
         """
-        try:
-            self._field_name_cache
-        except AttributeError:
-            self._fill_fields_cache()
-        return self._field_name_cache
+        field_cache, field_name_cache = self.fields_with_model
+        return field_name_cache
 
     @cached_property
     def concrete_fields(self):
@@ -318,33 +319,30 @@ class Options(object):
     def local_concrete_fields(self):
         return [f for f in self.local_fields if f.column is not None]
 
-    def get_fields_with_model(self):
+    @cached_property
+    def fields_with_model(self):
         """
         Returns a sequence of (field, model) pairs for all fields. The "model"
         element is None for fields on the current model. Mostly of use when
         constructing queries so that we know which model a field belongs to.
         """
-        try:
-            self._field_cache
-        except AttributeError:
-            self._fill_fields_cache()
-        return self._field_cache
-
-    def get_concrete_fields_with_model(self):
-        return [(field, model) for field, model in self.get_fields_with_model() if
-                field.column is not None]
-
-    def _fill_fields_cache(self):
         cache = []
         for parent in self.parents:
-            for field, model in parent._meta.get_fields_with_model():
+            parent_field_cache, parent_field_name_cache = parent._meta.fields_with_model
+            for field, model in parent_field_cache:
                 if model:
                     cache.append((field, model))
                 else:
                     cache.append((field, parent))
         cache.extend((f, None) for f in self.local_fields)
-        self._field_cache = tuple(cache)
-        self._field_name_cache = [x for x, _ in cache]
+        field_cache = tuple(cache)
+        field_name_cache = [x for x, _ in cache]
+        return field_cache, field_name_cache
+
+    def get_concrete_fields_with_model(self):
+        field_cache, field_name_cache = self.fields_with_model
+        return [(field, model) for field, model in field_cache if
+                field.column is not None]
 
     @cached_property
     def many_to_many(self):
@@ -438,7 +436,9 @@ class Options(object):
                 cache[f.field.related_query_name()] = (f, model, False, False)
         for f, model in self.m2m_with_model:
             cache[f.name] = cache[f.attname] = (f, model, True, True)
-        for f, model in self.get_fields_with_model():
+
+        field_cache, field_name_cache = self.fields_with_model
+        for f, model in field_cache:
             cache[f.name] = cache[f.attname] = (f, model, True, False)
         if not only_local:
             for f in self.virtual_fields:
@@ -458,22 +458,20 @@ class Options(object):
                                            include_proxy_eq=False):
         """
         Returns a list of (related-object, model) pairs. Similar to
-        get_fields_with_model().
+        fields_with_model.
         """
-        try:
-            self._related_objects_cache
-        except AttributeError:
-            self._fill_related_objects_cache()
+
+        objects_cache, proxy_cache = self.related_objects_and_proxy_cache
         predicates = []
         if local_only:
             predicates.append(lambda k, v: not v)
         if not include_hidden:
             predicates.append(lambda k, v: not k.field.rel.is_hidden())
-        cache = (self._related_objects_proxy_cache if include_proxy_eq
-                 else self._related_objects_cache)
+        cache = (proxy_cache if include_proxy_eq else objects_cache)
         return [t for t in cache.items() if all(p(*t) for p in predicates)]
 
-    def _fill_related_objects_cache(self):
+    @cached_property
+    def related_objects_and_proxy_cache(self):
         cache = OrderedDict()
         parent_list = self.get_parent_list()
         for parent in self.parents:
@@ -496,8 +494,7 @@ class Options(object):
                             proxy_cache[f.related] = None
                         elif self.concrete_model == f.rel.to._meta.concrete_model:
                             proxy_cache[f.related] = None
-        self._related_objects_cache = cache
-        self._related_objects_proxy_cache = proxy_cache
+        return cache, proxy_cache
 
     def get_all_related_many_to_many_objects(self, local_only=False):
         cache = self._related_many_to_many_cache
@@ -508,7 +505,7 @@ class Options(object):
     def get_all_related_m2m_objects_with_model(self):
         """
         Returns a list of (related-m2m-object, model) pairs. Similar to
-        get_fields_with_model().
+        fields_with_model.
         """
         cache = self._related_many_to_many_cache
         return list(six.iteritems(cache))

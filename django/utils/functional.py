@@ -67,6 +67,13 @@ class cached_property(object):
 
 
 class conditional_cached_property(cached_property):
+    """
+    Decorator similar to cached_property that gives the cached function
+    the possibility of storing the cache. The instance method decorated
+    by conditional_cached_property must return (should_cache, result)
+    where should_cache is a boolean indicating if the result should be
+    cached and result is the object to return, and possible to cache.
+    """
     always = False
 
 

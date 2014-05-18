@@ -67,7 +67,7 @@ class FunctionalTestCase(unittest.TestCase):
         # check that it behaves like a property when there's no instance
         self.assertIsInstance(A.value, cached_property)
 
-    def test_cached_property_maybe_option(self):
+    def test_conditional_cached_property(self):
         """
         Test that cached_property with a always=False
         option will decide if to cache the result
@@ -84,8 +84,15 @@ class FunctionalTestCase(unittest.TestCase):
 
         a = A()
 
-        # Check that cache in disabled
+        # Cache is disabled, check values are different
         self.assertNotEqual(a.value, a.value)
+
+        # Cache enabled, check values are equal
+        a.cache = True
+        self.assertEqual(a.value, a.value)
+
+        self.assertTrue(type(a.value[0]) == int)
+        self.assertEquals(len(a.value), 2)
 
     def test_lazy_equality(self):
         """

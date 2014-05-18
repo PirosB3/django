@@ -55,7 +55,13 @@ class cached_property(object):
         if instance is None:
             return self
         res = self.func(instance)
-        if self.always or res[0]:
+        should_cache = True
+
+        if not self.always:
+            # If self.always is set to false, res is
+            # expected to be (should_cache, res).
+            should_cache, res = res
+        if should_cache:
             instance.__dict__[self.func.__name__] = res
         return res
 

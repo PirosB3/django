@@ -1,0 +1,221 @@
+======================
+Model ``_meta`` options
+======================
+
+This document contains all the current methods and functions
+that are available in _meta, when they are called, why they are called
+and what is used most frequently
+
+Available ``_meta`` options
+==========================
+
+Options
+~~~~~~~~
+.. class:: Options(model_class, app_label=None)
+
+Must be initialized with the following arguments:
+
+.. attribute:: Options.model_class
+
+    The model class that is to be bound to _meta
+
+.. attribute:: Options.app_label
+
+    The label of the app that is responsible for the model.
+    If the Model is not part of and INSTALLED_APP, it is imported
+    before the module is loaded or it doesn't declare an explicit
+    app_label, then app_label will be set to the last occurance of
+    a module named models
+
+
+get_field
+=========
+
+.. method:: Options.get_field(name, many_to_many=True)
+
+    Internally calls ``fields`` and ``many_to_many``.
+    Returns the field instance given a name of a field. ``name``
+    is the name of the field and ``many_to_many`` is a flag specifying
+    if the field should be searched in the many_to_many registry too.
+    Internally, this searches over ``Options.fields`` and ``Options.many_to_many``::
+
+        class Photo(models.Model):
+            title = models.CharField(max_length=50)
+
+        >>> from photos.models import Photo
+        >>> Photo._meta.get_field('title')
+        <django.db.models.fields.CharField: title>
+
+fields
+======
+
+.. attribute:: Options.fields
+
+    Calls ``_fill_fields_cache`` and returns ``_field_name_cache``::
+
+        class Photo(models.Model):
+            title = models.CharField(max_length=50)
+
+        >>> from photos.models import Photo
+        >>>Photo._meta.fields
+        [<django.db.models.fields.AutoField: id>,
+         <django.db.models.fields.CharField: title>]
+
+many_to_many
+============
+
+.. attribute:: Options.many_to_many
+
+    A cached property that returns an OrderedDict of fields,
+    into consideration the order defined on the model. ``fields`` is
+    recursive, and takes into consideration also parent's fields, by
+    calling ``get_field_by_name`` on each parent::
+
+        class Photo(models.Model):
+            title = models.CharField(max_length=50)
+
+        >>> from photos.models import Photo
+        >>>Photo._meta.fields
+        [<django.db.models.fields.AutoField: id>,
+         <django.db.models.fields.CharField: title>]
+
+_fill_fields_cache
+==================
+
+.. method:: Options._fill_fields_cache()
+
+    Used internally by ``get_fields_with_model``, and 
+    ``fields``.
+    It retreives an ordered list of fields, taking
+    into consideration the order defined on the model. ``_fill_fields_cache`` is
+    recursive, and takes into consideration also parent's fields.
+    Sets the following properties on the instance:
+
+    .. attribute:: Options._field_cache
+
+        A tuple of variable length componsed of 2-length tuples.
+        The first element of the tuple is the field and the
+        second element is None, if the field belongs to the model, or
+        a model class if the field belongs to a parent class::
+
+            >>> Photo._meta._field_cache
+            ((<django.db.models.fields.AutoField: id>, None),
+             (<django.db.models.fields.CharField: title>, None))
+
+    .. attribute:: Options._field_name_cache
+        
+        A list containing only the first element of the child tuples
+        in ``_field_cache``::
+
+            >>> Photo._meta._field_name_cache
+            [<django.db.models.fields.AutoField: id>,
+             <django.db.models.fields.CharField: title>]
+
+_fill_m2m_cache
+==================
+
+.. method:: Options._fill_fields_cache()
+
+    Used internally by ``get_m2m_with_model``, and 
+    ``many_to_many``.
+    It retreives an ordered list of m2m fields, taking
+    into consideration the order defined on the model. ``_fill_m2m_cache`` is
+    recursive, and takes into consideration also parent's fields.
+    Sets the following properties on the instance:
+
+    .. attribute:: Options._m2m_cache
+
+        An OrderedDict where the keys are the m2m fields and the
+        values are None if the field belongs to the model, or
+        a model class if the field belongs to a parent class::
+
+            >>> User._meta._m2m_cache
+            OrderedDict([(<django.db.models.fields.related.ManyToManyField: groups>, None),
+            (<django.db.models.fields.related.ManyToManyField: user_permissions>, None)])
+
+_fill_related_many_to_many_cache
+==================
+
+.. method:: Options._fill_related_many_to_many_cache()
+
+    Used internally by ``get_all_related_m2m_objects_with_model`` and
+    ``get_all_related_many_to_many_objects``.
+    It creates a OrderedDict where to store the final restult, then it
+    loops through each parent and searches for related fields, calling
+    ``get_all_related_m2m_objects_with_model`` recursively.
+    Finally, it gets models from each app loaded at that time and
+    checks if any field of that model is related to the current model.
+    Sets the following properties on the instance:
+
+    .. attribute:: Options._related_many_to_many_cache
+        
+        
+
+_fill_related_objects_cache
+===========================
+
+.. method:: Options._fill_related_objects_cache()
+
+    Used internally by ``get_all_related_objects`` and
+    ``get_all_related_objects_with_model``.
+    It loops through each model currently registered and checks
+    if there are fields (ex. ForeignKey) that point to the current
+    model. If a field matches this criteria, it is inserted into
+    ``_related_objects_cache`` and ``_related_objects_proxy_cache``.
+    if the field links back to the current model through a proxy
+    (ex. multi-table inheritance) it is only added to
+    ``_related_objects_proxy_cache`` and will not be present
+    in ``_related_objects_cache``.
+    Sets the following properties on the instance:
+    
+    .. attribute:: Options._related_objects_cache
+
+        An OrderedDict where the keys are the related fields and the
+        values are None if the field belongs to the model, or
+        a model class if the field belongs to a parent class.
+        Fields inside _related_objects_cache are sure to be defined
+        on the current model::
+
+            class Comment(models.Model):
+                photo = models.ForeignKey(Photo)
+                body = models.CharField(max_length=50)
+
+            >>> Photo._meta._related_objects_cache
+            OrderedDict([(<RelatedObject: photos:comment related to photo>, None)])
+            >>> Photo._meta._related_objects_proxy_cache
+            OrderedDict([(<RelatedObject: photos:comment related to photo>, None)])
+
+    .. attribute:: Options._related_objects_proxy_cache
+
+        An OrderedDict where the keys are the related fields and the
+        values are None if the field belongs to the model, or
+        a model class if the field belongs to a parent class
+        Fields inside _related_objects_proxy_cache are a combintaion
+        of fields defined on the current model and proxy fields::
+
+
+            class Photo(models.Model):
+                place = models.ForeignKey(Place)
+                title = models.CharField(max_length=50)
+
+
+            class Place(models.Model):
+                name = models.CharField(max_length=50)
+                address = models.CharField(max_length=80)
+
+
+            class FishPlace(Place):
+                class Meta:
+                    proxy = True
+
+            >>> FishPlace._meta._related_objects_cache
+            OrderedDict([(<RelatedObject: photos:photo related to place>,
+                        <class 'photos.models.Place'>)])
+
+            >>> FishPlace._meta._related_objects_proxy_cache
+            OrderedDict([(<RelatedObject: photos:photo related to place>,
+                         None),
+                         (<RelatedObject: photos:restaurant related to place_ptr>,
+                         None)])
+
+            

@@ -46,6 +46,20 @@ get_field
         >>> Photo._meta.get_field('title')
         <django.db.models.fields.CharField: title>
 
+
+get_all_field_names
+===================
+
+.. method:: Options.get_all_field_names()
+
+    Internally calls ``init_name_map``.
+    This is only used for debugging purposes. It automatically
+    excludes symmetrical m2m related names::
+
+        >>> FishPlace._meta.get_all_field_names()
+        ['address', u'id', 'name', 'photo']
+
+
 fields
 ======
 
@@ -133,6 +147,24 @@ _fill_m2m_cache
             OrderedDict([(<django.db.models.fields.related.ManyToManyField: groups>, None),
             (<django.db.models.fields.related.ManyToManyField: user_permissions>, None)])
 
+get_parent_list
+==================
+
+.. method:: Options.get_parent_list()
+
+    Returns a set containing all the parents of the model. The call
+    is recursive.
+
+
+get_all_related_m2m_objects_with_model
+==================
+
+.. method:: Options.get_all_related_m2m_objects_with_model()
+
+    Converts the OrderedDict from ``_fill_related_many_to_many_cache`` 
+    to a list in the format (related-m2m-object, model)
+
+
 _fill_related_many_to_many_cache
 ==================
 
@@ -144,12 +176,56 @@ _fill_related_many_to_many_cache
     loops through each parent and searches for related fields, calling
     ``get_all_related_m2m_objects_with_model`` recursively.
     Finally, it gets models from each app loaded at that time and
-    checks if any field of that model is related to the current model.
+    checks if any field of that model has a m2m relation with the current
+    model.
     Sets the following properties on the instance:
 
     .. attribute:: Options._related_many_to_many_cache
+
+        An OrderedDict where the keys are the related fields and the
+        values are None if the field belongs to the model, or
+        a model class if the field belongs to a parent class.
         
         
+
+get_all_related_objects_with_model
+=======================================
+
+.. method:: Options.get_all_related_objects_with_model(local_only=False, include_hidden=False, include_proxy_eq=False)
+
+    .. attribute:: local_only
+
+        Return only m2m objects on the same model
+
+    .. attribute:: include_hidden
+
+        Also return hidden fields
+
+    .. attribute:: include_proxy_eq
+        
+        Will take into consideration also proxy fields. If flag
+        is present, it will take the fields to evaluate from 
+        ``_related_objects_proxy_cache``, if not it will take it
+        from ``_related_objects_cache``
+
+    A list of variable length componsed of 2-length tuples.
+    The first element of the tuple is the field and the
+    second element is None, if the field belongs to the model, or
+    a model class if the field belongs to a parent class::
+
+        >>> Permission._meta.get_all_related_m2m_objects_with_model()
+        [(<RelatedObject: auth:group related to permissions>, None),
+         (<RelatedObject: auth:user related to user_permissions>, None)]
+
+
+get_all_related_objects
+===========================
+
+.. method:: Options.get_all_related_objects(local_only=False, include_hidden=False, include_proxy_eq=False)
+
+    Uses ``get_all_related_m2m_objects_with_model``, only returning
+    the related objects without model.
+
 
 _fill_related_objects_cache
 ===========================

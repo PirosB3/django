@@ -28,6 +28,9 @@ Must be initialized with the following arguments:
     a module named models
 
 
+Fields
+~~~~~~
+
 get_field
 =========
 
@@ -75,23 +78,14 @@ fields
         [<django.db.models.fields.AutoField: id>,
          <django.db.models.fields.CharField: title>]
 
-many_to_many
-============
+get_fields_with_model
+==================
 
-.. attribute:: Options.many_to_many
+.. method:: Options.get_fields_with_model()
 
-    A cached property that returns an OrderedDict of fields,
-    into consideration the order defined on the model. ``fields`` is
-    recursive, and takes into consideration also parent's fields, by
-    calling ``get_field_by_name`` on each parent::
+    Depends on ``_fill_fields_cache``
+    Returns ``_field_name_cache``.
 
-        class Photo(models.Model):
-            title = models.CharField(max_length=50)
-
-        >>> from photos.models import Photo
-        >>>Photo._meta.fields
-        [<django.db.models.fields.AutoField: id>,
-         <django.db.models.fields.CharField: title>]
 
 _fill_fields_cache
 ==================
@@ -125,10 +119,41 @@ _fill_fields_cache
             [<django.db.models.fields.AutoField: id>,
              <django.db.models.fields.CharField: title>]
 
+Many to Many
+~~~~~~~~~~~~
+
+many_to_many
+============
+
+.. attribute:: Options.many_to_many
+
+    A cached property that returns an OrderedDict of fields,
+    into consideration the order defined on the model. ``fields`` is
+    recursive, and takes into consideration also parent's fields, by
+    calling ``get_field_by_name`` on each parent::
+
+        class Photo(models.Model):
+            title = models.CharField(max_length=50)
+
+        >>> from photos.models import Photo
+        >>>Photo._meta.fields
+        [<django.db.models.fields.AutoField: id>,
+         <django.db.models.fields.CharField: title>]
+
+
+get_m2m_with_model
+==================
+
+.. method:: Options.get_m2m_with_model()
+
+    Converts the OrderedDict from ``_m2m_cache`` 
+    to a list in the format (m2m-field, model)
+
+
 _fill_m2m_cache
 ==================
 
-.. method:: Options._fill_fields_cache()
+.. method:: Options._fill_m2m_cache()
 
     Used internally by ``get_m2m_with_model``, and 
     ``many_to_many``.
@@ -155,9 +180,20 @@ get_parent_list
     Returns a set containing all the parents of the model. The call
     is recursive.
 
+Related Many to Many objects
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+get_all_related_many_to_many_objects
+====================================
+
+.. method:: Options.get_all_related_many_to_many_objects(local_only=False)
+    
+    Returns a list of related m2m objects, if ``local_only`` is specified
+    if it only return fields on the same model
+
 
 get_all_related_m2m_objects_with_model
-==================
+======================================
 
 .. method:: Options.get_all_related_m2m_objects_with_model()
 
@@ -166,7 +202,7 @@ get_all_related_m2m_objects_with_model
 
 
 _fill_related_many_to_many_cache
-==================
+=================================
 
 .. method:: Options._fill_related_many_to_many_cache()
 
@@ -186,7 +222,9 @@ _fill_related_many_to_many_cache
         values are None if the field belongs to the model, or
         a model class if the field belongs to a parent class.
         
-        
+
+Related objects
+~~~~~~~~~~~~~~~~
 
 get_all_related_objects_with_model
 =======================================
@@ -293,5 +331,3 @@ _fill_related_objects_cache
                          None),
                          (<RelatedObject: photos:restaurant related to place_ptr>,
                          None)])
-
-            

@@ -1,13 +1,13 @@
-======================
+=======================
 Model ``_meta`` options
-======================
+=======================
 
 This document contains all the current methods and functions
 that are available in _meta, when they are called, why they are called
 and what is used most frequently
 
 Available ``_meta`` options
-==========================
+===========================
 
 Options
 ~~~~~~~~
@@ -28,8 +28,8 @@ Must be initialized with the following arguments:
     a module named models
 
 
-Fields
-~~~~~~
+Fields Section
+~~~~~~~~~~~~~~
 
 get_field
 =========
@@ -50,6 +50,12 @@ get_field
         <django.db.models.fields.CharField: title>
 
 
+    Most of the uses come from contrib apps such as admin,
+    contenttypes, auth, and gis. In auth it is used to
+    fetch information from fields of AUTH_USER_MODEL.
+
+
+
 get_all_field_names
 ===================
 
@@ -61,6 +67,25 @@ get_all_field_names
 
         >>> FishPlace._meta.get_all_field_names()
         ['address', u'id', 'name', 'photo']
+
+
+    Although documented as a pretty printing function, it is used
+    in some cases. In models/sql/query it is used to provide pretty error
+    messages. in models/query.py it is used to replace the value of _fields
+    if it had not been cloned previously. in serializers/python.py it is
+    used to look up all model fields and build a dict to de-serialize Django
+    objects into the ORM. also serializers/xml_serializer uses a similar approach.
+    Finally, it is also used for spacial data
+
+    * db/models/sql/query.py
+
+    * core/serializers/xml_serializer.py
+
+    * contrib/gis/utils/srs.py
+
+    * core/serializers/python.py
+
+    * db/models/query.py
 
 
 fields
@@ -78,8 +103,37 @@ fields
         [<django.db.models.fields.AutoField: id>,
          <django.db.models.fields.CharField: title>]
 
+    Usage: fields is used as a generic lookup for all
+    fields inside a model. This can be convenient when
+    dealing with deferred fields, when field cleaning
+    is performed, or with pickling. It is also widely
+    used within query.py to perform get_or_create and
+    update_or_create. It is also used to perform validation
+    such as: checking number of foreign keys, finding
+    related fields.
+
+    Used in the following files:
+
+    * db/models/base.py
+
+    * contrib/gis/sitemaps/kml.py
+
+    * contrib/gis/db/models/sql/query.py
+
+    * core/management/commands/dumpdata.py
+
+    * db/models/fields/__init__.py
+
+    * forms/models.py
+
+    * db/models/query.py
+
+    * db/models/fields/related.py
+
+    * contrib/contenttypes/views.py
+
 get_fields_with_model
-==================
+=====================
 
 .. method:: Options.get_fields_with_model()
 
@@ -119,8 +173,8 @@ _fill_fields_cache
             [<django.db.models.fields.AutoField: id>,
              <django.db.models.fields.CharField: title>]
 
-Many to Many
-~~~~~~~~~~~~
+Many to Many Section
+~~~~~~~~~~~~~~~~~~~~
 
 many_to_many
 ============
@@ -151,7 +205,7 @@ get_m2m_with_model
 
 
 _fill_m2m_cache
-==================
+===============
 
 .. method:: Options._fill_m2m_cache()
 
@@ -172,16 +226,9 @@ _fill_m2m_cache
             OrderedDict([(<django.db.models.fields.related.ManyToManyField: groups>, None),
             (<django.db.models.fields.related.ManyToManyField: user_permissions>, None)])
 
-get_parent_list
-==================
 
-.. method:: Options.get_parent_list()
-
-    Returns a set containing all the parents of the model. The call
-    is recursive.
-
-Related Many to Many objects
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Related Many to Many objects section
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 get_all_related_many_to_many_objects
 ====================================
@@ -202,7 +249,7 @@ get_all_related_m2m_objects_with_model
 
 
 _fill_related_many_to_many_cache
-=================================
+================================
 
 .. method:: Options._fill_related_many_to_many_cache()
 
@@ -223,11 +270,11 @@ _fill_related_many_to_many_cache
         a model class if the field belongs to a parent class.
         
 
-Related objects
-~~~~~~~~~~~~~~~~
+Related objects section
+~~~~~~~~~~~~~~~~~~~~~~~
 
 get_all_related_objects_with_model
-=======================================
+==================================
 
 .. method:: Options.get_all_related_objects_with_model(local_only=False, include_hidden=False, include_proxy_eq=False)
 
@@ -257,7 +304,7 @@ get_all_related_objects_with_model
 
 
 get_all_related_objects
-===========================
+=======================
 
 .. method:: Options.get_all_related_objects(local_only=False, include_hidden=False, include_proxy_eq=False)
 
@@ -331,3 +378,113 @@ _fill_related_objects_cache
                          None),
                          (<RelatedObject: photos:restaurant related to place_ptr>,
                          None)])
+
+Higher-level functions
+~~~~~~~~~~~~~~~~~~~~~~
+
+init_name_map
+=============
+
+.. method:: Options.init_name_map()
+
+    Internally calls ``get_all_related_m2m_objects_with_model``,
+    ``get_all_related_objects_with_model``, ``get_m2m_with_model``,
+    and ``get_fields_with_model``.
+    This is the the core part of the Meta API, it is responsible for calling most of
+    the functions above and create a dict used as a lookup table.    Sets the following properties on the instance:
+
+    .. attribute:: Options._name_map
+
+        The dict maps the field name to a field
+        object tuple. The field object is composed
+        of (field_object, model, direct, m2m)
+
+
+add_field
+=========
+
+.. method:: Options.add_field(field)
+
+    Adds a field in the order it was created, based on
+    ``creation_counter``. if the field is a ``ManyToManyField``
+    it will be added to the ``local_many_to_many`` list, else
+    it will be added to the ``local_fields`` list. Finally, it
+    will expire the caching system for that field type. Finally
+    it will expire ``_name_map``, that is the result of both
+    properties.
+
+
+contribute_to_class
+===================
+
+.. method:: Options.contribute_to_class(cls, name)
+
+    ``contribute_to_class`` is used to create a tightly coupled
+    binding between the model class and the current Options
+    instance. It is used to make the Options instance aware
+    of the model's metadata. ``contribute_to_class`` does the following
+    in order:
+
+    * Sets proprties such as ``object_name``, ``model_name``, ``model``,
+      and ``verbose_name`` from the model.
+
+
+    * If the Meta class is defined by the user on the model class,
+      this method will iterate through a it's properties,
+      and replace default attributes with the ones specified the
+      dict, if present.
+
+    * If ``unique_together`` and/or ``index_together`` are specified
+      on the user-defined Meta class, they are popped out and
+      normalized using ``normalize_together``.
+
+    * If ``verbose_name_plural`` was not specified, it will be constructed
+      dynamically.
+
+    * If ``db_table`` was not specified, it will be constructed dynamically
+      dynamically.
+
+
+Utils
+~~~~~
+
+get_ancestor_link
+=================
+
+.. method:: Options.get_ancestor_link(ancestor)
+
+    Finds the field that binds the current model with
+    an ancestor model. This is usually used for models
+    with multi-table inheritance::
+
+        class Place(models.Model):
+            name = models.CharField(max_length=50)
+            address = models.CharField(max_length=80)
+
+
+        class Restaurant(Place):
+            serves_hot_dogs = models.BooleanField()
+            serves_pizza = models.BooleanField()
+        
+        >>> Restaurant._meta.get_ancestor_link(Place)
+        <django.db.models.fields.related.OneToOneField: place_ptr>
+
+
+get_parent_list
+===============
+
+.. method:: Options.get_parent_list()
+
+    Returns a set containing all the parents of the model. The call
+    is recursive.
+
+
+normalize_together
+==================
+
+.. method:: Options.normalize_together()
+
+    Used when attaching an Options object onto a model class.
+    if the user specified a custom ``unique_together`` or 
+    ``index_together`` inside the Meta class of the model,
+    this function ensure it is normalized to a tuple of tuples.

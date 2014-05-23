@@ -9,7 +9,7 @@ Available ``_meta`` options
 ===========================
 
 Options
-~~~~~~~~
+========
 .. class:: Options(model_class, app_label=None)
 
 Must be initialized with the following arguments:
@@ -28,10 +28,10 @@ Must be initialized with the following arguments:
 
 
 Fields Section
-~~~~~~~~~~~~~~
+==============
 
 get_field
-=========
+~~~~~~~~~
 
 .. method:: Options.get_field(name, many_to_many=True)
 
@@ -54,7 +54,7 @@ get_field
 
 
 get_all_field_names
-===================
+~~~~~~~~~~~~~~~~~~~
 
 .. method:: Options.get_all_field_names()
 
@@ -86,7 +86,7 @@ get_all_field_names
     * db/models/query.py
 
 virtual_fields
-==============
+~~~~~~~~~~~~~~
 
 .. attribute:: Options.virtual_fields
 
@@ -116,7 +116,7 @@ virtual_fields
 
 
 concrete_fields
-===============
+~~~~~~~~~~~~~~~
 
 .. attribute:: Options.concrete_fields
 
@@ -124,7 +124,7 @@ concrete_fields
     Filters out all fields that do not have a column
 
 fields
-======
+~~~~~~
 
 .. attribute:: Options.fields
 
@@ -168,7 +168,7 @@ fields
     * contrib/contenttypes/views.py
 
 get_fields_with_model
-=====================
+~~~~~~~~~~~~~~~~~~~~~
 
 .. method:: Options.get_fields_with_model()
 
@@ -177,7 +177,7 @@ get_fields_with_model
 
 
 get_concrete_fields_with_model
-==============================
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. method:: Options.get_concrete_fields_with_model()
 
@@ -186,7 +186,7 @@ get_concrete_fields_with_model
 
 
 _fill_fields_cache
-==================
+~~~~~~~~~~~~~~~~~~
 
 .. method:: Options._fill_fields_cache()
 
@@ -218,10 +218,10 @@ _fill_fields_cache
              <django.db.models.fields.CharField: title>]
 
 Many to Many Section
-~~~~~~~~~~~~~~~~~~~~
+====================
 
 many_to_many
-============
+~~~~~~~~~~~~
 
 .. attribute:: Options.many_to_many
 
@@ -240,7 +240,7 @@ many_to_many
 
 
 get_m2m_with_model
-==================
+~~~~~~~~~~~~~~~~~~
 
 .. method:: Options.get_m2m_with_model()
 
@@ -249,7 +249,7 @@ get_m2m_with_model
 
 
 _fill_m2m_cache
-===============
+~~~~~~~~~~~~~~~
 
 .. method:: Options._fill_m2m_cache()
 
@@ -272,10 +272,10 @@ _fill_m2m_cache
 
 
 Related Many to Many objects section
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+====================================
 
 get_all_related_many_to_many_objects
-====================================
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. method:: Options.get_all_related_many_to_many_objects(local_only=False)
     
@@ -284,7 +284,7 @@ get_all_related_many_to_many_objects
 
 
 get_all_related_m2m_objects_with_model
-======================================
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. method:: Options.get_all_related_m2m_objects_with_model()
 
@@ -293,7 +293,7 @@ get_all_related_m2m_objects_with_model
 
 
 _fill_related_many_to_many_cache
-================================
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. method:: Options._fill_related_many_to_many_cache()
 
@@ -315,10 +315,10 @@ _fill_related_many_to_many_cache
         
 
 Related objects section
-~~~~~~~~~~~~~~~~~~~~~~~
+=======================
 
 get_all_related_objects_with_model
-==================================
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. method:: Options.get_all_related_objects_with_model(local_only=False, include_hidden=False, include_proxy_eq=False)
 
@@ -348,7 +348,7 @@ get_all_related_objects_with_model
 
 
 get_all_related_objects
-=======================
+~~~~~~~~~~~~~~~~~~~~~~~
 
 .. method:: Options.get_all_related_objects(local_only=False, include_hidden=False, include_proxy_eq=False)
 
@@ -357,7 +357,7 @@ get_all_related_objects
 
 
 _fill_related_objects_cache
-===========================
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. method:: Options._fill_related_objects_cache()
 
@@ -424,10 +424,10 @@ _fill_related_objects_cache
                          None)])
 
 Higher-level functions
-~~~~~~~~~~~~~~~~~~~~~~
+======================
 
 init_name_map
-=============
+~~~~~~~~~~~~~
 
 .. method:: Options.init_name_map()
 
@@ -445,7 +445,7 @@ init_name_map
 
 
 add_field
-=========
+~~~~~~~~~
 
 .. method:: Options.add_field(field)
 
@@ -459,7 +459,7 @@ add_field
 
 
 contribute_to_class
-===================
+~~~~~~~~~~~~~~~~~~~
 
 .. method:: Options.contribute_to_class(cls, name)
 
@@ -490,10 +490,10 @@ contribute_to_class
 
 
 Utils
-~~~~~
+=====
 
 get_ancestor_link
-=================
+~~~~~~~~~~~~~~~~~
 
 .. method:: Options.get_ancestor_link(ancestor)
 
@@ -515,7 +515,7 @@ get_ancestor_link
 
 
 get_parent_list
-===============
+~~~~~~~~~~~~~~~
 
 .. method:: Options.get_parent_list()
 
@@ -524,7 +524,7 @@ get_parent_list
 
 
 normalize_together
-==================
+~~~~~~~~~~~~~~~~~~
 
 .. method:: Options.normalize_together()
 

@@ -3,8 +3,7 @@ Model ``_meta`` options
 =======================
 
 This document contains all the current methods and functions
-that are available in _meta, when they are called, why they are called
-and what is used most frequently
+currently available in _meta
 
 Available ``_meta`` options
 ===========================
@@ -22,9 +21,9 @@ Must be initialized with the following arguments:
 .. attribute:: Options.app_label
 
     The label of the app that is responsible for the model.
-    If the Model is not part of and INSTALLED_APP, it is imported
-    before the module is loaded or it doesn't declare an explicit
-    app_label, then app_label will be set to the last occurance of
+    If the Model is not included in ``INSTALLED_APPS``, is imported
+    before the module is loaded, or it doesn't declare an explicit
+    ``app_label`` then ``app_label`` will be set to the last occurance of
     a module named models
 
 
@@ -49,11 +48,9 @@ get_field
         >>> Photo._meta.get_field('title')
         <django.db.models.fields.CharField: title>
 
-
     Most of the uses come from contrib apps such as admin,
     contenttypes, auth, and gis. In auth it is used to
-    fetch information from fields of AUTH_USER_MODEL.
-
+    fetch information from fields of ``AUTH_USER_MODEL``.
 
 
 get_all_field_names
@@ -62,19 +59,20 @@ get_all_field_names
 .. method:: Options.get_all_field_names()
 
     Internally calls ``init_name_map``.
-    This is only used for debugging purposes. It automatically
+    Only used for debugging purposes, it automatically
     excludes symmetrical m2m related names::
 
         >>> FishPlace._meta.get_all_field_names()
         ['address', u'id', 'name', 'photo']
 
 
-    Although documented as a pretty printing function, it is used
-    in some cases. In models/sql/query it is used to provide pretty error
-    messages. in models/query.py it is used to replace the value of _fields
-    if it had not been cloned previously. in serializers/python.py it is
-    used to look up all model fields and build a dict to de-serialize Django
-    objects into the ORM. also serializers/xml_serializer uses a similar approach.
+    Although it has been documented as a pretty printing function, it is used
+    unappropriately in some cases. In ``models/sql/query`` it is used to 
+    provide pretty error messages. in ``models/query.py`` it is used to
+    replace the value of _fields if it had not been cloned previously.
+    in ``serializers/python.py`` it is used to look up all model fields
+    and build a dict to de-serialize Django objects into the ORM.
+    also ``serializers/xml_serializer`` uses a similar approach.
     Finally, it is also used for spacial data
 
     * db/models/sql/query.py
@@ -87,6 +85,43 @@ get_all_field_names
 
     * db/models/query.py
 
+virtual_fields
+==============
+
+.. attribute:: Options.virtual_fields
+
+    Virtual fields are custom ``ForeignObject`` that are
+    custom-made. Examples are ``GenericRelation`` and ``GenericForeignKey``.
+    
+    Inside and ouside of core, virtual_fields are often iterated
+    and then checked if isinstance of a specific type.
+
+    * contrib/contenttypes/admin.py
+
+    * contrib/contenttypes/fields.py
+
+    * db/models/base.py
+
+    * db/models/deletion.py
+
+    * forms/models.py
+
+.. note::
+        forms/models.py:85
+        Note that for historical reasons we want to include also
+        virtual_fields here. (GenericRelation was previously a fake
+        m2m field).
+    
+
+
+
+concrete_fields
+===============
+
+.. attribute:: Options.concrete_fields
+
+    Calls ``fields`` internally.
+    Filters out all fields that do not have a column
 
 fields
 ======
@@ -139,6 +174,15 @@ get_fields_with_model
 
     Depends on ``_fill_fields_cache``
     Returns ``_field_name_cache``.
+
+
+get_concrete_fields_with_model
+==============================
+
+.. method:: Options.get_concrete_fields_with_model()
+
+    Depends on ``get_fields_with_model``
+    Filters out all fields that do not have a column
 
 
 _fill_fields_cache

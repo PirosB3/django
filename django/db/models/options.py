@@ -140,20 +140,27 @@ class Options(object):
 
     def get_field_details(self, field_name, opts=NONE):
         base = OrderedDict()
-        for _, data in self.get_new_fields(types=RELATED_M2M,
-                                           opts=opts, with_model=True):
-            name = data[0].field.related_query_name()
-            base[name] = data + (False, True,)
-        for _, data in self.get_new_fields(types=RELATED_OBJECTS,
-                                           opts=opts, with_model=True):
-            name = data[0].field.related_query_name()
-            base[name] = data + (False, False,)
+        if apps.ready:
+            for _, data in self.get_new_fields(types=RELATED_M2M,
+                                               opts=opts, with_model=True):
+                name = data[0].field.related_query_name()
+                base[name] = data + (False, True,)
+            for _, data in self.get_new_fields(types=RELATED_OBJECTS,
+                                               opts=opts, with_model=True):
+                name = data[0].field.related_query_name()
+                base[name] = data + (False, False,)
         for name, data in self.get_new_fields(types=M2M,
                                               opts=opts, with_model=True):
+            # NOTE: adding name and attname
+            base[data[0].name] = data + (True, True,)
             base[name] = data + (True, True,)
         for name, data in self.get_new_fields(types=DATA,
                                               opts=opts, with_model=True):
+            # NOTE: adding name and attname
+            base[data[0].name] = data + (True, True,)
             base[name] = data + (True, False,)
+        for f in self.virtual_fields:
+            base[f.name] = (f, f.model, True, False)
         try:
             return base[field_name]
         except KeyError:
@@ -439,31 +446,29 @@ class Options(object):
         return None
     swapped = property(_swapped)
 
+    def _map_model(self, fields):
+        res = []
+        for fn, f in fields:
+            model = self.get_field_details(fn)[1]
+            if model == self.model:
+                model = None
+            res.append((f, model))
+        return res
+
     @cached_property
     def fields(self):
-        # get_fields(local=RECURSIVE)
-        """
-        The getter for self.fields. This returns the list of field objects
-        available to this model (including through parent models).
-
-        Callers are not permitted to modify this list, since it's a reference
-        to this instance (not a copy).
-        """
-        try:
-            self._field_name_cache
-        except AttributeError:
-            self._fill_fields_cache()
-        return self._field_name_cache
+        return [field for field_name, field
+                in self.get_new_fields(types=DATA)]
 
     @cached_property
     def concrete_fields(self):
-        # get_fields(local=RECURSIVE | CONCRETE)
-        return [f for f in self.fields if f.column is not None]
+        return [field for field_name, field
+                in self.get_new_fields(types=DATA, opts=CONCRETE)]
 
     @cached_property
     def local_concrete_fields(self):
-        # get_fields(local=CONCRETE)
-        return [f for f in self.local_fields if f.column is not None]
+        return [field for field_name, field
+                in self.get_new_fields(types=DATA, opts=CONCRETE | LOCAL_ONLY)]
 
     def get_fields_with_model(self):
         # get_fields(local=RECURSIVE)
@@ -472,11 +477,12 @@ class Options(object):
         element is None for fields on the current model. Mostly of use when
         constructing queries so that we know which model a field belongs to.
         """
-        try:
-            self._field_cache
-        except AttributeError:
-            self._fill_fields_cache()
-        return self._field_cache
+        return self._map_model(self.get_new_fields(types=DATA))
+        #try:
+            #self._field_cache
+        #except AttributeError:
+            #self._fill_fields_cache()
+        #return self._field_cache
 
     def get_concrete_fields_with_model(self):
         # get_fields(local=RECURSIVE | CONCRETE)
@@ -496,12 +502,8 @@ class Options(object):
         self._field_name_cache = [x for x, _ in cache]
 
     def _many_to_many(self):
-        #get_fields(m2m=RECURSIVE)
-        try:
-            self._m2m_cache
-        except AttributeError:
-            self._fill_m2m_cache()
-        return list(self._m2m_cache)
+        return [field for field_name, field
+                in self.get_new_fields(types=M2M)]
     many_to_many = property(_many_to_many)
 
     def get_m2m_with_model(self):
@@ -509,11 +511,12 @@ class Options(object):
         """
         The many-to-many version of get_fields_with_model().
         """
-        try:
-            self._m2m_cache
-        except AttributeError:
-            self._fill_m2m_cache()
-        return list(six.iteritems(self._m2m_cache))
+        return self._map_model(self.get_new_fields(types=M2M))
+        #try:
+            #self._m2m_cache
+        #except AttributeError:
+            #self._fill_m2m_cache()
+        #return list(six.iteritems(self._m2m_cache))
 
     def _fill_m2m_cache(self):
         cache = OrderedDict()
@@ -549,6 +552,7 @@ class Options(object):
 
         Uses a cache internally, so after the first access, this is very fast.
         """
+        #return self.get_field_details(name)
         try:
             try:
                 return self._name_map[name]

@@ -1346,6 +1346,8 @@ class Query(object):
             # field lives in parent, but we are currently in one of its
             # children)
             if model:
+                #if model._meta.model_name == 'migration':
+                    #import ipdb; ipdb.set_trace()
                 # The field lives on a base class of the current model.
                 # Skip the chain of proxy to the concrete proxied model
                 proxied_model = opts.concrete_model

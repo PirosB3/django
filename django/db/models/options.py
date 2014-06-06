@@ -157,7 +157,7 @@ class Options(object):
         for name, data in self.get_new_fields(types=DATA,
                                               opts=opts, with_model=True):
             # NOTE: adding name and attname
-            base[data[0].name] = data + (True, True,)
+            base[data[0].name] = data + (True, False,)
             base[name] = data + (True, False,)
         for f in self.virtual_fields:
             base[f.name] = (f, f.model, True, False)

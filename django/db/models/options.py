@@ -14,7 +14,6 @@ from django.utils.functional import conditional_cached_property, cached_property
 from django.utils.text import camel_case_to_spaces
 from django.utils.translation import activate, deactivate_all, get_language, string_concat
 
-from django.utils.lru_cache import lru_cache
 from django.db.models.fields import Field
 
 

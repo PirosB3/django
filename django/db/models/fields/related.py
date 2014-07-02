@@ -225,7 +225,7 @@ class RelatedField(Field):
         # any other field accessor -- i. e. Model.foreign accessor clashes with
         # Model.m2m accessor.
         potential_clashes = rel_opts.get_new_fields(types=RELATED_M2M)
-        potential_clashes += rel_opts.get_new_fields(types=RELATED_OBJECTS)
+        potential_clashes += rel_opts.related_objects
         potential_clashes = (r for r in potential_clashes
             if r.field is not self)
         for clash_field in potential_clashes:

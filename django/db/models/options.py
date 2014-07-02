@@ -322,6 +322,10 @@ class Options(object):
         except AttributeError:
             pass
         try:
+            del self.related_objects
+        except AttributeError:
+            pass
+        try:
             del self.field_map
         except AttributeError:
             pass
@@ -456,6 +460,10 @@ class Options(object):
         return self.get_new_fields(types=DATA, opts=CONCRETE | LOCAL_ONLY)
         # get_fields(local=CONCRETE)
         #return [f for f in self.local_fields if f.column is not None]
+
+    @cached_property
+    def related_objects(self):
+        return self.get_new_fields(types=RELATED_OBJECTS)
 
     def get_fields_with_model(self):
         # get_fields(local=RECURSIVE)

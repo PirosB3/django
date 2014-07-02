@@ -4,7 +4,6 @@ import operator
 from django.db.backends.creation import BaseDatabaseCreation
 from django.db.backends.utils import truncate_name
 from django.db.models.fields.related import ManyToManyField
-from django.db.models.options import RELATED_OBJECTS
 from django.db.transaction import atomic
 from django.utils.encoding import force_bytes
 from django.utils.log import getLogger
@@ -562,7 +561,7 @@ class BaseDatabaseSchemaEditor(object):
         # Drop incoming FK constraints if we're a primary key and things are going
         # to change.
         if old_field.primary_key and new_field.primary_key and old_type != new_type:
-            for rel in new_field.model._meta.get_new_fields(types=RELATED_OBJECTS):
+            for rel in new_field.model._meta.related_objects:
                 rel_fk_names = self._constraint_names(rel.model, [rel.field.column], foreign_key=True)
                 for fk_name in rel_fk_names:
                     self.execute(
@@ -692,7 +691,7 @@ class BaseDatabaseSchemaEditor(object):
         # referring to us.
         rels_to_update = []
         if old_field.primary_key and new_field.primary_key and old_type != new_type:
-            rels_to_update.extend(new_field.model._meta.get_new_fields(types=RELATED_OBJECTS))
+            rels_to_update.extend(new_field.model._meta.related_objects)
         # Changed to become primary key?
         # Note that we don't detect unsetting of a PK, as we assume another field
         # will always come along and replace it.
@@ -720,7 +719,7 @@ class BaseDatabaseSchemaEditor(object):
                 }
             )
             # Update all referencing columns
-            rels_to_update.extend(new_field.model._meta.get_new_fields(types=RELATED_OBJECTS))
+            rels_to_update.extend(new_field.model._meta.related_objects)
         # Handle our type alters on the other end of rels from the PK stuff above
         for rel in rels_to_update:
             rel_db_params = rel.field.db_parameters(connection=self.connection)
@@ -747,7 +746,7 @@ class BaseDatabaseSchemaEditor(object):
             )
         # Rebuild FKs that pointed to us if we previously had to drop them
         if old_field.primary_key and new_field.primary_key and old_type != new_type:
-            for rel in new_field.model._meta.get_new_fields(types=RELATED_OBJECTS):
+            for rel in new_field.model._meta.related_objects:
                 self.execute(
                     self.sql_create_fk % {
                         "table": self.quote_name(rel.model._meta.db_table),

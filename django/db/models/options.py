@@ -310,6 +310,10 @@ class Options(object):
 
     def _expire_cache(self):
         try:
+            del self.field_names
+        except AttributeError:
+            pass
+        try:
             del self.fields
         except AttributeError:
             pass

@@ -448,6 +448,10 @@ class Options(object):
         #return self._field_name_cache
 
     @cached_property
+    def field_names(self):
+        return [val for val in self.field_map.keys() if not val.endswith('+')]
+
+    @cached_property
     def concrete_fields(self):
         return list(self.get_new_fields(types=DATA, opts=CONCRETE))
 

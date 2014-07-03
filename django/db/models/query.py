@@ -804,7 +804,7 @@ class QuerySet(object):
 
         names = getattr(self, '_fields', None)
         if names is None:
-            names = set([val for val in self.model._meta.field_names if not val.endswith('+')])
+            names = set(self.model._meta.field_names)
         for aggregate in kwargs:
             if aggregate in names:
                 raise ValueError("The annotation '%s' conflicts with a field on "

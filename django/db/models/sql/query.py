@@ -1425,7 +1425,7 @@ class Query(object):
         return path, final_field, targets, names[pos + 1:]
 
     def raise_field_error(self, opts, name):
-        field_names = [val for val in opts.field_names if not val.endswith('+')]
+        field_names = opts.field_names
         available = field_names + list(self.aggregate_select)
         raise FieldError("Cannot resolve keyword %r into field. "
                          "Choices are: %s" % (name, ", ".join(available)))

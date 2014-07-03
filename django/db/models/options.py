@@ -310,6 +310,10 @@ class Options(object):
 
     def _expire_cache(self):
         try:
+            del self.field_names
+        except AttributeError:
+            pass
+        try:
             del self.fields
         except AttributeError:
             pass
@@ -450,6 +454,10 @@ class Options(object):
         #except AttributeError:
             #self._fill_fields_cache()
         #return self._field_name_cache
+
+    @cached_property
+    def field_names(self):
+        return [val for val in self.field_map.keys() if not val.endswith('+')]
 
     @cached_property
     def concrete_fields(self):

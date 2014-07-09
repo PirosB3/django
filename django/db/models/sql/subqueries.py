@@ -127,7 +127,7 @@ class UpdateQuery(Query):
         values_seq = []
         for name, val in six.iteritems(values):
             field = self.get_meta().get_new_field(name, related_objects=True, related_m2m=True, virtual=True)
-            direct = isinstance(field, Field) or hasattr(field, 'is_gfk')
+            direct = field.direct
             model = field.model if direct else field.parent_model._meta.concrete_model
             if not direct or hasattr(field, 'is_m2m'):
                 raise FieldError('Cannot update model field %r (only non-relations and foreign keys permitted).' % field)

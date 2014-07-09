@@ -12,6 +12,8 @@ PathInfo = namedtuple('PathInfo',
 
 
 class RelatedObject(object):
+    direct = False
+
     def __init__(self, parent_model, model, field):
         self.parent_model = parent_model
         self.model = model

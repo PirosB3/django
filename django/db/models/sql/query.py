@@ -602,7 +602,7 @@ class Query(object):
                     must_include[old_model].add(source)
                 add_to_dict(must_include, cur_model, opts.pk)
             field = opts.get_new_field(parts[-1], related_objects=True, related_m2m=True, virtual=True)
-            direct = isinstance(field, Field) or hasattr(field, 'is_gfk')
+            direct = field.direct
             model = field.model if direct else field.parent_model._meta.concrete_model
             if model == opts.model:
                 model = cur_model
@@ -619,7 +619,7 @@ class Query(object):
                 for field in model._meta.fields:
                     if field in values:
                         continue
-                    direct = isinstance(field, Field) or hasattr(field, 'is_gfk')
+                    direct = field.direct
                     m = field.model if direct else field.parent_model._meta.concrete_model
                     add_to_dict(workset, m, field)
             for model, values in six.iteritems(must_include):
@@ -939,7 +939,7 @@ class Query(object):
         seen = {None: root_alias}
 
         for field in opts.fields:
-            direct = isinstance(field, Field) or hasattr(field, 'is_gfk')
+            direct = field.direct
             model = field.model if direct else field.parent_model._meta.concrete_model
             if model is not opts.model and model not in seen:
                 self.join_parent_model(opts, model, root_alias, seen)
@@ -1372,7 +1372,7 @@ class Query(object):
                 name = opts.pk.name
             try:
                 field = opts.get_new_field(name, related_objects=True, related_m2m=True, virtual=True)
-                direct = isinstance(field, Field) or hasattr(field, 'is_gfk')
+                direct = field.direct
                 model = field.model if direct else field.parent_model._meta.concrete_model
             except FieldDoesNotExist:
                 # We didn't found the current field, so move position back

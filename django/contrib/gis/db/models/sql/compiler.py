@@ -126,7 +126,9 @@ class GeoSQLCompiler(compiler.SQLCompiler):
         if start_alias:
             seen[None] = start_alias
         for field in opts.concrete_fields:
-            field_is_direct = isinstance(field, Field) or hasattr(field, 'is_gfk')
+            field_is_direct = field.direct
+            if field_is_direct:
+                import ipdb; ipdb.set_trace()
             model = field.model if field_is_direct else field.parent_model._meta.concrete_model
             if model == opts.model:
                 model = None

@@ -1262,7 +1262,7 @@ class ManyToOneRel(ForeignObjectRel):
         tied.
         """
         field = self.to._meta.get_new_field(self.field_name, related_objects=True, related_m2m=True, virtual=True)
-        if not isinstance(field, Field) or hasattr(field, 'is_gfk'):
+        if not field.direct:
             raise FieldDoesNotExist("No related field named '%s'" %
                     self.field_name)
         return field

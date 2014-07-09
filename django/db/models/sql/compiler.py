@@ -299,10 +299,7 @@ class SQLCompiler(object):
         seen_models = {None: start_alias}
 
         for field in opts.concrete_fields:
-            field_is_direct = isinstance(field, Field) or hasattr(field, 'is_gfk')
-            model = field.model if field_is_direct else field.parent_model._meta.concrete_model
-            if model == opts.model:
-                model = None
+            model = None if field.model == opts.model else field.model
             if from_parent and model is not None and issubclass(from_parent, model):
                 # Avoid loading data for already loaded parents.
                 continue

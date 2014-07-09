@@ -91,6 +91,7 @@ class Field(RegisterLookupMixin):
 
     # Designates whether empty strings fundamentally are allowed at the
     # database level.
+    direct = True
     empty_strings_allowed = True
     empty_values = list(validators.EMPTY_VALUES)
 

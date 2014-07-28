@@ -447,7 +447,9 @@ class Options(object):
         related_objects_graph = defaultdict(list)
         related_objects_proxy_graph = defaultdict(list)
         related_m2m_graph = defaultdict(list)
-        for model in self.apps.get_models(include_auto_created=True):
+
+        all_models = self.apps.get_models(include_auto_created=True)
+        for model in all_models:
             for f in model._meta.get_fields(data=True, virtual=True):
                 # Check if the field has a relation to another model
                 if hasattr(f, 'rel') and f.rel and f.has_class_relation:
@@ -467,14 +469,10 @@ class Options(object):
                         # Set options_instance -> field
                         related_m2m_graph[f.rel.to._meta].append(f)
 
-        for opts, fields in six.iteritems(related_objects_graph):
-            opts._related_objects_graph = fields
-
-        for opts, fields in six.iteritems(related_m2m_graph):
-            opts._related_m2m_graph = fields
-
-        for model, fields in six.iteritems(related_objects_proxy_graph):
-            model._meta._related_objects_proxy_graph = fields
+        for model in all_models:
+            model._meta._related_objects_graph = related_objects_graph[model._meta]
+            model._meta._related_m2m_graph = related_m2m_graph[model._meta]
+            model._meta._related_objects_proxy_graph = related_objects_proxy_graph[model]
 
     @cached_property
     def related_objects_graph(self):

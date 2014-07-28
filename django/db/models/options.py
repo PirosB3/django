@@ -434,6 +434,22 @@ class Options(object):
         except KeyError:
             raise FieldDoesNotExist('%s has no field named %r' % (self.object_name, field_name))
 
+    def get_related_m2m_graph(self):
+        try:
+            return self._related_m2m_graph
+        except AttributeError:
+            for model in self.apps.get_models(include_auto_created=False):
+                model._meta._related_m2m_graph = []
+
+            for model in self.apps.get_models(include_auto_created=False):
+                for f in model._meta.get_fields(m2m=True, data=False):
+                    if f.rel and not isinstance(f.rel.to, six.string_types):
+                        f.rel.to._meta._related_m2m_graph.append(f)
+            try:
+                return self._related_m2m_graph
+            except AttributeError:
+                return []
+
     def get_fields(self, m2m=False, data=True, related_m2m=False, related_objects=False, virtual=False,
                    include_parents=True, include_non_concrete=True, include_hidden=False, include_proxy=False, **kwargs):
         """
@@ -495,6 +511,12 @@ class Options(object):
             # If the model is a proxy model, then we also add the concrete model.
             tree = self.apps.related_m2m_relation_graph
             field_list = tree[self] if not self.proxy else chain(tree[self], tree[self.concrete_model._meta])
+
+            tree2 = self.get_related_m2m_graph()
+            field_list2 = tree2 if not self.proxy else chain(tree2, self.concrete_model._meta.get_related_m2m_graph())
+
+            assert list(field_list2) == list(field_list)
+
             for f in field_list:
                 fields[f.related] = {f.related_query_name()}
 

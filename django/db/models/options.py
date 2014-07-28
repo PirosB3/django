@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 
+from collections import defaultdict
 from copy import copy
 from bisect import bisect
 from collections import OrderedDict
@@ -435,27 +436,45 @@ class Options(object):
             raise FieldDoesNotExist('%s has no field named %r' % (self.object_name, field_name))
 
     def _populate_directed_relation_graph(self):
+        """
+        This method is used by each model to find
+        related m2m and objects. As this method is very
+        expensive and is accessed frequently
+        (it looks up every field in a model,
+        in every app), it is computed on first access
+        and then is set as a property on every model.
+        """
+        related_objects_graph = defaultdict(list)
+        related_objects_proxy_graph = defaultdict(list)
+        related_m2m_graph = defaultdict(list)
         for model in self.apps.get_models(include_auto_created=True):
-            model._meta._related_m2m_graph = []
-            model._meta._related_objects_graph = []
-            model._meta._related_objects_proxy_graph = []
-
-        for model in self.apps.get_models(include_auto_created=True):
-            for f in model._meta.get_fields(virtual=True):
+            for f in model._meta.get_fields(data=True, virtual=True):
+                # Check if the field has a relation to another model
                 if hasattr(f, 'rel') and f.rel and f.has_class_relation:
                     # Set options_instance -> field
-                    f.rel.to._meta._related_objects_graph.append(f)
+                    related_objects_graph[f.rel.to._meta].append(f)
                     # If the model the field is pointing to is a proxy
                     # class, then save reference in the proxy_graph.
                     # This is only used when get_fields contains the
                     # include_proxy option.
                     if f.rel.to._meta.proxy:
-                        f.rel.to._meta.concrete_model._meta._related_objects_proxy_graph.append(f)
+                        related_objects_proxy_graph[f.rel.to._meta.concrete_model].append(f)
 
             if not model._meta.auto_created:
-                for f in model._meta.get_fields(m2m=True, data=False):
+                for f in model._meta.many_to_many:
+                    # Check if the field has a relation to another model
                     if f.rel and not isinstance(f.rel.to, six.string_types):
-                        f.rel.to._meta._related_m2m_graph.append(f)
+                        # Set options_instance -> field
+                        related_m2m_graph[f.rel.to._meta].append(f)
+
+        for opts, fields in six.iteritems(related_objects_graph):
+            opts._related_objects_graph = fields
+
+        for opts, fields in six.iteritems(related_m2m_graph):
+            opts._related_m2m_graph = fields
+
+        for model, fields in six.iteritems(related_objects_proxy_graph):
+            model._meta._related_objects_proxy_graph = fields
 
     @cached_property
     def related_objects_graph(self):
@@ -548,16 +567,12 @@ class Options(object):
 
             # Tree is computer once and cached until apps cache is expired. It is composed of
             # { options_instance : [field_pointing_to_options_model, field_pointing_to_options, ..]}
-            # If the model is a proxy model, then we also add the concrete model.
-            tree = self.apps.related_m2m_relation_graph
-            field_list = tree[self] if not self.proxy else chain(tree[self], tree[self.concrete_model._meta])
+            field_list = self.related_m2m_graph
+            if not self.proxy:
+                # If the model is a proxy model, then we also add the concrete model.
+                field_list = chain(field_list, self.concrete_model._meta.related_m2m_graph)
 
-            tree2 = self.related_m2m_graph
-            field_list2 = tree2 if not self.proxy else chain(tree2, self.concrete_model._meta.related_m2m_graph)
-
-            assert list(field_list2) == list(field_list)
-
-            for f in field_list2:
+            for f in field_list:
                 fields[f.related] = {f.related_query_name()}
 
         if related_objects:
@@ -578,13 +593,14 @@ class Options(object):
 
             # Tree is computer once and cached until apps cache is expired. It is composed of
             # { options_instance : [field_pointing_to_options_model, field_pointing_to_options, ..]}
-            # If the model is a proxy model, then we also add the concrete model.
-            tree, proxy_tree = self.apps.related_objects_relation_graph
-            all_fields = self.related_objects_graph if not self.proxy else chain(self.related_objects_graph, self.concrete_model._meta.related_objects_graph)
-
+            all_fields = self.related_objects_graph
+            if not self.proxy:
+                # If the model is a proxy model, then we also add the concrete model.
+                all_fields = chain(all_fields, self.concrete_model._meta.related_objects_graph)
             if include_proxy:
                 # If we are also incluing proxied relations, also add contents in the proxy tree.
                 all_fields = chain(all_fields, self.concrete_model._meta.related_objects_proxy_graph)
+
             for f in all_fields:
                 if include_hidden or not f.related.field.rel.is_hidden():
                     # If hidden fields should be included or the relation

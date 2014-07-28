@@ -434,13 +434,14 @@ class Options(object):
         except KeyError:
             raise FieldDoesNotExist('%s has no field named %r' % (self.object_name, field_name))
 
-    def _populate_related_objects_cache(self):
+    def _populate_directed_relation_graph(self):
         for model in self.apps.get_models(include_auto_created=True):
+            model._meta._related_m2m_graph = []
             model._meta._related_objects_graph = []
             model._meta._related_objects_proxy_graph = []
 
         for model in self.apps.get_models(include_auto_created=True):
-            for f in model._meta.get_fields(data=True, virtual=True):
+            for f in model._meta.get_fields(virtual=True):
                 if hasattr(f, 'rel') and f.rel and f.has_class_relation:
                     # Set options_instance -> field
                     f.rel.to._meta._related_objects_graph.append(f)
@@ -451,12 +452,17 @@ class Options(object):
                     if f.rel.to._meta.proxy:
                         f.rel.to._meta.concrete_model._meta._related_objects_proxy_graph.append(f)
 
+            if not model._meta.auto_created:
+                for f in model._meta.get_fields(m2m=True, data=False):
+                    if f.rel and not isinstance(f.rel.to, six.string_types):
+                        f.rel.to._meta._related_m2m_graph.append(f)
+
     @cached_property
     def related_objects_graph(self):
         try:
             return self._related_objects_graph
         except AttributeError:
-            self._populate_related_objects_cache()
+            self._populate_directed_relation_graph()
             try:
                 return self._related_objects_graph
             except AttributeError:
@@ -467,7 +473,7 @@ class Options(object):
         try:
             return self._related_objects_proxy_graph
         except AttributeError:
-            self._populate_related_objects_cache()
+            self._populate_directed_relation_graph()
             try:
                 return self._related_objects_proxy_graph
             except AttributeError:
@@ -475,17 +481,14 @@ class Options(object):
 
     @cached_property
     def related_m2m_graph(self):
-        for model in self.apps.get_models(include_auto_created=False):
-            model._meta.__dict__['related_m2m_graph'] = []
-
-        for model in self.apps.get_models(include_auto_created=False):
-            for f in model._meta.get_fields(m2m=True, data=False):
-                if f.rel and not isinstance(f.rel.to, six.string_types):
-                    f.rel.to._meta.__dict__['related_m2m_graph'].append(f)
         try:
-            return self.__dict__['related_m2m_graph']
-        except KeyError:
-            return []
+            return self._related_m2m_graph
+        except AttributeError:
+            self._populate_directed_relation_graph()
+            try:
+                return self._related_m2m_graph
+            except AttributeError:
+                return []
 
     def get_fields(self, m2m=False, data=True, related_m2m=False, related_objects=False, virtual=False,
                    include_parents=True, include_non_concrete=True, include_hidden=False, include_proxy=False, **kwargs):

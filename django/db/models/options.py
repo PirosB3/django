@@ -478,36 +478,51 @@ class Options(object):
 
     @cached_property
     def related_objects_graph(self):
+        # If cache is not present, populate the cache
         try:
             return self._related_objects_graph
         except AttributeError:
             self._populate_directed_relation_graph()
-            try:
-                return self._related_objects_graph
-            except AttributeError:
-                return []
+
+        # If cache has been populated, but the
+        # current model does not have related objects
+        # return empty list
+        try:
+            return self._related_objects_graph
+        except AttributeError:
+            return []
 
     @cached_property
     def related_objects_proxy_graph(self):
+        # If cache is not present, populate the cache
         try:
             return self._related_objects_proxy_graph
         except AttributeError:
             self._populate_directed_relation_graph()
-            try:
-                return self._related_objects_proxy_graph
-            except AttributeError:
-                return []
+
+        # If cache has been populated, but the
+        # current model does not have proxy related
+        # objects, return empty list.
+        try:
+            return self._related_objects_proxy_graph
+        except AttributeError:
+            return []
 
     @cached_property
     def related_m2m_graph(self):
+        # If cache is not present, populate the cache
         try:
             return self._related_m2m_graph
         except AttributeError:
             self._populate_directed_relation_graph()
-            try:
-                return self._related_m2m_graph
-            except AttributeError:
-                return []
+
+        # If cache has been populated, but the
+        # current model does not have m2m related
+        # objects, return empty list.
+        try:
+            return self._related_m2m_graph
+        except AttributeError:
+            return []
 
     def get_fields(self, m2m=False, data=True, related_m2m=False, related_objects=False, virtual=False,
                    include_parents=True, include_non_concrete=True, include_hidden=False, include_proxy=False, **kwargs):

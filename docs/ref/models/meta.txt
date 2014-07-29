@@ -27,20 +27,10 @@ Data fields
 A data field is any field that has an entry on the database,
 for example a CharField, BooleanField, a ForeignKey.
 
-.. code-block:: python
-
-    class Person(models.Model):
-        data_abstract = models.CharField(max_length=10)
-
 Many-to-many fields
 ~~~~~~~~~~~~~~~~~~~
 
 A many-to-many field that is defined on the current model.
-
-.. code-block:: python
-
-    class Person(models.Model):
-        friends = models.ManyToManyField('self', related_name='friends', symmetrical=True)
 
 Related Object
 ~~~~~~~~~~~~~~
@@ -181,7 +171,7 @@ Retrieve a field instance by name
 
     .. code-block:: python
 
-        from django.contrib.auth.models import User
+        >>> from django.contrib.auth.models import User
 
         >>> User._meta.get_field('username')# A data field
         <django.db.models.fields.CharField: username>
@@ -195,7 +185,9 @@ Retrieve a field instance by name
         <django.db.models.fields.related.ForeignKey: user>
 
         >>> User._meta.get_field('does_not_exist') # A non existent field
-        *** FieldDoesNotExist: User has no field named 'does_not_exist'
+        Traceback (most recent call last):
+            ...
+        FieldDoesNotExist: User has no field named 'does_not_exist'
 
     .. note::
         The default arguments of :meth:`Options.get_field()` might not be what you expect.
@@ -222,7 +214,7 @@ Retrieve all field names
 Retrieve field instances
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. method:: Options.get_fields(m2m=False, data=True, related_m2m=False, related_objects=False, virtual=False, include_parents=True, include_non_concrete=True, include_hidden=False, include_proxy=False, export_map=False)
+.. method:: Options.get_fields(m2m=False, data=True, related_m2m=False, related_objects=False, virtual=False, include_parents=True, include_non_concrete=True, include_hidden=False, include_proxy=False)
 
     Returns a list of fields given a list of field types and filters.
 

@@ -6,7 +6,6 @@ import warnings
 
 from django.core.exceptions import AppRegistryNotReady, ImproperlyConfigured
 from django.utils import lru_cache, six
-from django.utils.functional import conditional_cached_property
 from django.utils.deprecation import RemovedInDjango19Warning
 from django.utils._os import upath
 

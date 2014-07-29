@@ -1,6 +1,6 @@
 from __future__ import unicode_literals
 
-from collections import defaultdict
+from collections import defaultdict, namedtuple
 from copy import copy
 from bisect import bisect
 from collections import OrderedDict
@@ -23,6 +23,7 @@ from django.utils.translation import activate, deactivate_all, get_language, str
 
 from django.db.models.fields import Field
 
+RelationTree = namedtuple('RelationTree', ['related_objects', 'related_proxy', 'related_m2m'])
 
 DEFAULT_NAMES = ('verbose_name', 'verbose_name_plural', 'db_table', 'ordering',
                  'unique_together', 'permissions', 'get_latest_by',
@@ -470,15 +471,17 @@ class Options(object):
                         related_m2m_graph[f.rel.to._meta].append(f)
 
         for model in all_models:
-            model._meta._related_objects_graph = related_objects_graph[model._meta]
-            model._meta._related_m2m_graph = related_m2m_graph[model._meta]
-            model._meta._related_objects_proxy_graph = related_objects_proxy_graph[model]
+            model._meta._relation_tree = RelationTree(
+                related_objects=related_objects_graph[model._meta],
+                related_proxy=related_objects_proxy_graph[model],
+                related_m2m=related_m2m_graph[model._meta],
+            )
 
     @cached_property
-    def related_objects_graph(self):
+    def relation_tree(self):
         # If cache is not present, populate the cache
         try:
-            return self._related_objects_graph
+            return self._relation_tree
         except AttributeError:
             self._populate_directed_relation_graph()
 
@@ -486,41 +489,9 @@ class Options(object):
         # current model does not have related objects
         # return empty list
         try:
-            return self._related_objects_graph
+            return self._relation_tree
         except AttributeError:
-            return []
-
-    @cached_property
-    def related_objects_proxy_graph(self):
-        # If cache is not present, populate the cache
-        try:
-            return self._related_objects_proxy_graph
-        except AttributeError:
-            self._populate_directed_relation_graph()
-
-        # If cache has been populated, but the
-        # current model does not have proxy related
-        # objects, return empty list.
-        try:
-            return self._related_objects_proxy_graph
-        except AttributeError:
-            return []
-
-    @cached_property
-    def related_m2m_graph(self):
-        # If cache is not present, populate the cache
-        try:
-            return self._related_m2m_graph
-        except AttributeError:
-            self._populate_directed_relation_graph()
-
-        # If cache has been populated, but the
-        # current model does not have m2m related
-        # objects, return empty list.
-        try:
-            return self._related_m2m_graph
-        except AttributeError:
-            return []
+            return RelationTree([], [], [])
 
     def get_fields(self, m2m=False, data=True, related_m2m=False, related_objects=False, virtual=False,
                    include_parents=True, include_non_concrete=True, include_hidden=False, include_proxy=False, **kwargs):
@@ -580,10 +551,10 @@ class Options(object):
 
             # Tree is computer once and cached until apps cache is expired. It is composed of
             # { options_instance : [field_pointing_to_options_model, field_pointing_to_options, ..]}
-            field_list = self.related_m2m_graph
+            field_list = self.relation_tree.related_m2m
             if not self.proxy:
                 # If the model is a proxy model, then we also add the concrete model.
-                field_list = chain(field_list, self.concrete_model._meta.related_m2m_graph)
+                field_list = chain(field_list, self.concrete_model._meta.relation_tree.related_m2m)
 
             for f in field_list:
                 fields[f.related] = {f.related_query_name()}
@@ -606,13 +577,13 @@ class Options(object):
 
             # Tree is computer once and cached until apps cache is expired. It is composed of
             # { options_instance : [field_pointing_to_options_model, field_pointing_to_options, ..]}
-            all_fields = self.related_objects_graph
+            all_fields = self.relation_tree.related_objects
             if not self.proxy:
                 # If the model is a proxy model, then we also add the concrete model.
-                all_fields = chain(all_fields, self.concrete_model._meta.related_objects_graph)
+                all_fields = chain(all_fields, self.concrete_model._meta.relation_tree.related_objects)
             if include_proxy:
                 # If we are also incluing proxied relations, also add contents in the proxy tree.
-                all_fields = chain(all_fields, self.concrete_model._meta.related_objects_proxy_graph)
+                all_fields = chain(all_fields, self.concrete_model._meta.relation_tree.related_proxy)
 
             for f in all_fields:
                 if include_hidden or not f.related.field.rel.is_hidden():

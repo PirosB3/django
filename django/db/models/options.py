@@ -34,7 +34,7 @@ DEFAULT_NAMES = ('verbose_name', 'verbose_name_plural', 'db_table', 'ordering',
 @lru_cache(maxsize=None)
 def _map_model(opts, connection):
     direct = isinstance(connection, Field) or hasattr(connection, 'for_concrete_model')
-    model = connection.model if direct else connection.concrete_model._meta.concrete_model
+    model = connection.model if direct else connection.parent_model._meta.concrete_model
     if model == opts.model:
         model = None
     return connection, model
@@ -43,7 +43,7 @@ def _map_model(opts, connection):
 @lru_cache(maxsize=None)
 def _map_details(opts, connection):
     direct = isinstance(connection, Field) or hasattr(connection, 'for_concrete_model')
-    model = connection.model if direct else connection.concrete_model._meta.concrete_model
+    model = connection.model if direct else connection.parent_model._meta.concrete_model
     if model == opts.model:
         model = None
 

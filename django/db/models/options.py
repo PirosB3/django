@@ -34,7 +34,7 @@ DEFAULT_NAMES = ('verbose_name', 'verbose_name_plural', 'db_table', 'ordering',
 @lru_cache(maxsize=None)
 def _map_model(opts, connection):
     direct = isinstance(connection, Field) or hasattr(connection, 'for_concrete_model')
-    model = connection.model if direct else connection.parent_model._meta.concrete_model
+    model = connection.model if direct else connection.concrete_model._meta.concrete_model
     if model == opts.model:
         model = None
     return connection, model
@@ -43,7 +43,7 @@ def _map_model(opts, connection):
 @lru_cache(maxsize=None)
 def _map_details(opts, connection):
     direct = isinstance(connection, Field) or hasattr(connection, 'for_concrete_model')
-    model = connection.model if direct else connection.parent_model._meta.concrete_model
+    model = connection.model if direct else connection.concrete_model._meta.concrete_model
     if model == opts.model:
         model = None
 
@@ -463,7 +463,7 @@ class Options(object):
         try:
             # In order to avoid list manipulation. Always
             # return a shallow copy of the results
-            return copy(self._get_fields_cache[cache_key])
+            return self._get_fields_cache[cache_key]
         except KeyError:
             pass
 
@@ -493,7 +493,7 @@ class Options(object):
             # Tree is computer once and cached until apps cache is expired. It is composed of
             # { options_instance : [field_pointing_to_options_model, field_pointing_to_options, ..]}
             # If the model is a proxy model, then we also add the concrete model.
-            tree = self.apps.related_m2m_relation_graph
+            tree = self.apps.relation_tree.related_m2m
             field_list = tree[self] if not self.proxy else chain(tree[self], tree[self.concrete_model._meta])
             for f in field_list:
                 fields[f.related] = {f.related_query_name()}
@@ -516,12 +516,16 @@ class Options(object):
 
             # Tree is computer once and cached until apps cache is expired. It is composed of
             # { options_instance : [field_pointing_to_options_model, field_pointing_to_options, ..]}
-            # If the model is a proxy model, then we also add the concrete model.
-            tree, proxy_tree = self.apps.related_objects_relation_graph
-            all_fields = tree[self] if not self.proxy else chain(tree[self], tree[self.concrete_model._meta])
+            tree = self.apps.relation_tree.related_objects
+            proxy_tree = self.apps.relation_tree.related_proxy
+            all_fields = tree[self]
+            if self.proxy:
+                # If the model is a proxy model, then we also add the concrete model.
+                all_fields = chain(all_fields, tree[self.concrete_model._meta])
             if include_proxy:
                 # If we are also incluing proxied relations, also add contents in the proxy tree.
                 all_fields = chain(all_fields, proxy_tree[self.concrete_model])
+
             for f in all_fields:
                 if include_hidden or not f.related.field.rel.is_hidden():
                     # If hidden fields should be included or the relation
@@ -578,7 +582,7 @@ class Options(object):
         self._get_fields_cache[cache_key] = fields
         # In order to avoid list manipulation. Always
         # return a shallow copy of the results
-        return copy(fields)
+        return fields
 
     ###########################################################################
     # Cached properties for fast access

@@ -1,4 +1,5 @@
-from collections import Counter, defaultdict, OrderedDict
+from collections import Counter, defaultdict, OrderedDict, namedtuple
+from itertools import chain
 import os
 import sys
 import threading
@@ -11,6 +12,8 @@ from django.utils.deprecation import RemovedInDjango19Warning
 from django.utils._os import upath
 
 from .config import AppConfig
+
+RelationTree = namedtuple('RelationTree', ['related_objects', 'related_proxy', 'related_m2m'])
 
 
 class Apps(object):
@@ -185,7 +188,7 @@ class Apps(object):
         return result
 
     @conditional_cached_property
-    def related_objects_relation_graph(self):
+    def relation_tree(self):
         """
         Returns two dictionaries with Options instances as keys
         and a list of fields as values.
@@ -196,10 +199,13 @@ class Apps(object):
         it is computed on first access and then is set as a property.
         The method will only cache when the apps registry is finalized.
         """
+        related_m2m_graph = defaultdict(list)
         related_objects_graph = defaultdict(list)
         related_objects_proxy_graph = defaultdict(list)
+
         for model in self.get_models(include_auto_created=True):
-            for f in model._meta.get_fields(data=True, virtual=True):
+            opts = model._meta
+            for f in chain(opts.fields, opts.virtual_fields):
                 # Check if the field has a relation to another model
                 if hasattr(f, 'rel') and f.rel and f.has_class_relation:
                     # Set options_instance -> field
@@ -211,34 +217,20 @@ class Apps(object):
                     if f.rel.to._meta.proxy:
                         related_objects_proxy_graph[f.rel.to._meta.concrete_model].append(f)
 
-        # Only cache when apps is ready
-        return self.ready, (related_objects_graph, related_objects_proxy_graph)
-
-    @conditional_cached_property
-    def related_m2m_relation_graph(self):
-        """
-        Returns a dictionary of Options instances
-        as keys and a list of fields as values.
-
-        This method is used by each model to find
-        related m2m. As this method is very
-        expensive and is accessed frequently
-        (it looks up every field in a model,
-        in every app), it is computed on first access
-        and then is set as a property.
-        The method will only cache when the apps registry
-        is finalized.
-        """
-        related_m2m_graph = defaultdict(list)
-
-        for model in self.get_models(include_auto_created=False):
-            for f in model._meta.get_fields(m2m=True, data=False):
-                if f.rel and not isinstance(f.rel.to, six.string_types):
-                    # Set options_instance -> field
-                    related_m2m_graph[f.rel.to._meta].append(f)
+            if not opts.auto_created:
+                # Many to many relations are never auto-created
+                for f in opts.many_to_many:
+                    # Check if the field has a relation to another model
+                    if f.rel and not isinstance(f.rel.to, six.string_types):
+                        # Set options_instance -> field
+                        related_m2m_graph[f.rel.to._meta].append(f)
 
         # Only cache when apps is ready
-        return self.ready, related_m2m_graph
+        return self.ready, RelationTree(
+            related_objects=related_objects_graph,
+            related_proxy=related_objects_proxy_graph,
+            related_m2m=related_m2m_graph
+        )
 
     def get_model(self, app_label, model_name=None):
         """

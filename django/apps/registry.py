@@ -12,6 +12,24 @@ from django.utils._os import upath
 from .config import AppConfig
 
 
+def memoize(f):
+    """ Memoization decorator for functions taking one or more arguments. """
+    class memodict(dict):
+        def __init__(self, f):
+            self.f = f
+
+        def __get__(self, cls, t):
+            self.cls = cls
+            return self
+
+        def __call__(self, **kwargs):
+            return self[tuple(kwargs.items())]
+
+        def __missing__(self, keys):
+            ret = self[keys] = self.f(self.cls, **dict(keys))
+            return ret
+    return memodict(f)
+
 class Apps(object):
     """
     A registry that stores the configuration of installed applications.
@@ -150,7 +168,7 @@ class Apps(object):
             raise LookupError("No installed app with label '%s'." % app_label)
 
     # This method is performance-critical at least for Django's test suite.
-    @lru_cache.lru_cache(maxsize=None)
+    @memoize
     def get_models(self, app_mod=None, include_auto_created=False,
                    include_deferred=False, include_swapped=False):
         """
@@ -329,7 +347,7 @@ class Apps(object):
 
         This is mostly used in tests.
         """
-        self.get_models.cache_clear()
+        #self.get_models.cache_clear()
 
     ### DEPRECATED METHODS GO BELOW THIS LINE ###
 

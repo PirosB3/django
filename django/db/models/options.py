@@ -524,7 +524,7 @@ class Options(object):
         try:
             # In order to avoid list manipulation. Always
             # return a shallow copy of the results
-            return copy(self._get_fields_cache[cache_key])
+            return self._get_fields_cache[cache_key]
         except KeyError:
             pass
 
@@ -643,7 +643,7 @@ class Options(object):
         self._get_fields_cache[cache_key] = fields
         # In order to avoid list manipulation. Always
         # return a shallow copy of the results
-        return copy(fields)
+        return fields
 
     ###########################################################################
     # Cached properties for fast access

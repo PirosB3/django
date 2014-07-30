@@ -451,7 +451,8 @@ class Options(object):
 
         all_models = self.apps.get_models(include_auto_created=True)
         for model in all_models:
-            for f in model._meta.get_fields(data=True, virtual=True):
+            opts = model._meta
+            for f in chain(opts.fields, opts.virtual_fields):
                 # Check if the field has a relation to another model
                 if hasattr(f, 'rel') and f.rel and f.has_class_relation:
                     # Set options_instance -> field
@@ -463,8 +464,9 @@ class Options(object):
                     if f.rel.to._meta.proxy:
                         related_objects_proxy_graph[f.rel.to._meta.concrete_model].append(f)
 
-            if not model._meta.auto_created:
-                for f in model._meta.many_to_many:
+            if not opts.auto_created:
+                # Many to many relations are never auto-created
+                for f in opts.many_to_many:
                     # Check if the field has a relation to another model
                     if f.rel and not isinstance(f.rel.to, six.string_types):
                         # Set options_instance -> field

@@ -452,15 +452,21 @@ class Options(object):
 
         # Creates a cache key composed of all arguments
         export_name_map = kwargs.get('export_name_map', False)
-        cache_key = (m2m, data, related_m2m, related_objects, virtual, include_parents,
-                     include_non_concrete, include_hidden, include_proxy, export_name_map)
+        current_cache_key = (m2m, data, related_m2m, related_objects, virtual, include_parents,
+                             include_non_concrete, include_hidden, include_proxy, export_name_map)
 
         try:
             # In order to avoid list manipulation. Always
             # return a shallow copy of the results
-            return copy(self._get_fields_cache[cache_key])
+            return self._get_fields_cache[current_cache_key]
         except KeyError:
             pass
+
+        cache_key_list = (m2m, data, related_m2m, related_objects, virtual, include_parents,
+                          include_non_concrete, include_hidden, include_proxy, False)
+
+        cache_key_dict = (m2m, data, related_m2m, related_objects, virtual, include_parents,
+                          include_non_concrete, include_hidden, include_proxy, True)
 
         # Using an OrderedDict to preserve the order of insertion. This is fundamental
         # when displaying a ModelForm or django.contrib.admin panel and no specific ordering
@@ -565,21 +571,27 @@ class Options(object):
                     for field in self.virtual_fields
                 )
 
+        # Store result into cache for later access
+        self._get_fields_cache[cache_key_dict] = fields
+
         if not export_name_map:
             # By default, fields contains field instances as keys and all possible names
             # if the field instance as values. when get_fields is called, we only want to
             # return field instances, so we just preserve the keys.
             fields = list(fields.keys())
+            self._get_fields_cache[cache_key_list] = fields
 
-        # Store result into cache for later access
-        self._get_fields_cache[cache_key] = fields
         # In order to avoid list manipulation. Always
         # return a shallow copy of the results
-        return copy(fields)
+        return fields
 
     ###########################################################################
     # Cached properties for fast access
     ###########################################################################
+
+    @cached_property
+    def all_related_objects(self):
+        return self.get_fields(data=False, related_m2m=True, related_objects=True)
 
     @cached_property
     def many_to_many(self):

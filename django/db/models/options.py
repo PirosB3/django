@@ -301,17 +301,21 @@ class Options(object):
         for model in all_models:
             for f in chain(model._meta.fields, model._meta.virtual_fields):
                 # Check if the field has a relation to another model
-                if hasattr(f, 'rel') and f.rel and f.has_class_relation:
+                try:
                     # Set options_instance -> field
                     related_objects_graph[f.rel.to._meta].append(f)
+                except AttributeError:
+                    pass
 
             if not model._meta.auto_created:
                 # Many to many relations are never auto-created
                 for f in model._meta.many_to_many:
                     # Check if the field has a relation to another model
-                    if f.rel and not isinstance(f.rel.to, six.string_types):
+                    try:
                         # Set options_instance -> field
                         related_m2m_graph[f.rel.to._meta].append(f)
+                    except AttributeError:
+                        pass
 
         for model in all_models:
             # Set the realtion_tree using the internal __dict__.
@@ -320,10 +324,18 @@ class Options(object):
             # a data descriptor (such as @cached_property). This
             # means that the _meta.relation_tree is only called
             # if related_objects is not in __dict__.
-            model._meta.__dict__['relation_tree'] = RelationTree(
-                related_objects=tuple(related_objects_graph[model._meta]),
-                related_m2m=tuple(related_m2m_graph[model._meta]),
-            )
+            related_objects = tuple(related_objects_graph[model._meta])
+            related_m2m = tuple(related_m2m_graph[model._meta])
+
+            # If both related_objects and related_m2m are empty, it makes sense
+            # to set EMPTY_RELATION_TREE
+            relation_tree = EMPTY_RELATION_TREE
+            if related_objects or related_m2m:
+                relation_tree = RelationTree(
+                    related_objects=related_objects,
+                    related_m2m=related_m2m
+                )
+            model._meta.__dict__['relation_tree'] = relation_tree
 
     @cached_property
     def relation_tree(self):

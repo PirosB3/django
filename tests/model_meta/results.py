@@ -480,6 +480,26 @@ TEST_RESULTS = {
             'generic_relation_abstract',
         ],
     },
+    'legacy_virtual_fields': {
+        AbstractPerson: [
+            'content_object_abstract',
+            'generic_relation_abstract',
+        ],
+        BasePerson: [
+            'content_object_base',
+            'content_object_abstract',
+            'generic_relation_base',
+            'generic_relation_abstract',
+        ],
+        Person: [
+            'content_object_concrete',
+            'content_object_base',
+            'content_object_abstract',
+            'generic_relation_concrete',
+            'generic_relation_base',
+            'generic_relation_abstract',
+        ],
+    },
     'virtual_fields': {
         AbstractPerson: [
             'content_object_abstract',

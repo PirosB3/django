@@ -414,11 +414,11 @@ class Options(object):
         # has now become m2m. In order to avoid breaking other's implementation
         # we will catch the use of 'many_to_many'.
         many_to_many = kwargs.pop('many_to_many', None)
-        if many_to_many in kwargs:
+        if many_to_many is not None:
 
             # If no many_to_many fields are wanted, create a new dictionary with
             # without ManyToManyField instances.
-            if kwargs['many_to_many'] is False:
+            if many_to_many is False:
                 field_map = dict((name, field) for name, field in six.iteritems(field_map)
                                  if not isinstance(field, ManyToManyField))
 
@@ -715,19 +715,14 @@ class Options(object):
                 for field in self.local_fields
             )
 
-        if virtual:
+        if virtual or related_virtual:
             # Virtual fields to not need to recursively search parents.
-            fields.update(
-                (field, {field.name})
-                for field in self.virtual_fields
-                if not hasattr(field, 'related')
-            )
-        if related_virtual:
-            fields.update(
-                (field, {field.name, field.attname})
-                for field in self.virtual_fields
-                if hasattr(field, 'related')
-            )
+            for field in self.virtual_fields:
+                is_related = hasattr(field, 'related')
+                if is_related and related_virtual:
+                    fields[field] = {field.name, field.attname}
+                if not is_related and virtual:
+                    fields[field] = {field.name}
 
         if not export_name_map:
             # By default, fields contains field instances as keys and all possible names

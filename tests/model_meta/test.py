@@ -68,6 +68,11 @@ class DataTests(OptionsBaseTests):
             self.assertEqual([f.attname for f in fields], expected_result)
             self.assertTrue(all([f.column is not None for f in fields]))
 
+    def test_pure_data_fields(self):
+        for model, expected_result in TEST_RESULTS['pure_data_fields'].items():
+            fields = model._meta.get_fields(pure_data=True, relation_data=False)
+            self.assertEqual([f.attname for f in fields], expected_result)
+
 
 class M2MTests(OptionsBaseTests):
 

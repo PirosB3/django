@@ -53,6 +53,31 @@ TEST_RESULTS = {
             'proxyperson_hidden_id',
         ],
     },
+    'pure_data_fields': {
+        Person: [
+            'id',
+            'pure_data_abstract',
+            'object_id_abstract',
+            'pure_data_base',
+            'object_id_base',
+            'pure_data_inherited',
+            'object_id_concrete',
+        ],
+        BasePerson: [
+            'id',
+            'pure_data_abstract',
+            'object_id_abstract',
+            'pure_data_base',
+            'object_id_base',
+        ],
+        AbstractPerson: [
+            'pure_data_abstract',
+            'object_id_abstract',
+        ],
+        Relating: [
+            'id',
+        ],
+    },
     'local_fields': {
         Person: [
             'baseperson_ptr_id',

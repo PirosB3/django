@@ -630,7 +630,9 @@ class Options(object):
 
         # Creates a cache key composed of all arguments
         export_name_map = kwargs.get('export_name_map', False)
-        cache_key = (m2m, pure_data, related_m2m, related_objects, virtual,
+        cache_key = (m2m, pure_data, virtual,
+                     relation_data,
+                     related_m2m, related_objects, related_virtual,
                      include_parents, include_hidden, export_name_map)
 
         try:
@@ -715,22 +717,18 @@ class Options(object):
                 for parent in self.parents:
                     # Extend the fields dict with all the m2m fields of each parent.
                     fields.update(parent._meta.get_fields(pure_data=True, relation_data=False, **options))
-            fields.update(
-                (field, {field.name, field.attname})
-                for field in self.local_fields
-                if not hasattr(field, 'rel')
-            )
+            for field in self.local_fields:
+                if not field.rel:
+                    fields[field] = {field.name, field.attname}
 
         if relation_data:
             if include_parents:
                 for parent in self.parents:
                     # Extend the fields dict with all the m2m fields of each parent.
                     fields.update(parent._meta.get_fields(pure_data=False, relation_data=True, **options))
-            fields.update(
-                (field, {field.name, field.attname})
-                for field in self.local_fields
-                if hasattr(field, 'rel')
-            )
+            for field in self.local_fields:
+                if field.rel:
+                    fields[field] = {field.name, field.attname}
 
         if virtual or related_virtual:
             # Virtual fields to not need to recursively search parents.

@@ -712,23 +712,18 @@ class Options(object):
                 for field in self.local_many_to_many
             )
 
-        if pure_data:
+        if pure_data or relation_data:
             if include_parents:
                 for parent in self.parents:
-                    # Extend the fields dict with all the m2m fields of each parent.
-                    fields.update(parent._meta.get_fields(pure_data=True, relation_data=False, **options))
-            for field in self.local_fields:
-                if not field.rel:
-                    fields[field] = {field.name, field.attname}
-
-        if relation_data:
-            if include_parents:
-                for parent in self.parents:
-                    # Extend the fields dict with all the m2m fields of each parent.
-                    fields.update(parent._meta.get_fields(pure_data=False, relation_data=True, **options))
-            for field in self.local_fields:
-                if field.rel:
-                    fields[field] = {field.name, field.attname}
+                    # Extend the fields dict with all the data fields of each parent.
+                    fields.update(parent._meta.get_fields(pure_data=pure_data, relation_data=relation_data, **options))
+            for f in self.local_fields:
+                if pure_data and relation_data:
+                    fields[f] = {f.name, f.attname}
+                else:
+                    points_to_model = hasattr(f, 'rel') and f.rel and f.has_class_relation
+                    if ((points_to_model and relation_data) or (not points_to_model and pure_data)):
+                        fields[f] = {f.name, f.attname}
 
         if virtual or related_virtual:
             # Virtual fields to not need to recursively search parents.

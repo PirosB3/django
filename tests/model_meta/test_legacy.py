@@ -182,6 +182,14 @@ class GetFieldByNameTests(IgnorePendingDeprecationWarningsMixin, OptionsBaseTest
         self.assertEqual(field_info[1:], (None, True, False))
         self.assertIsInstance(field_info[0], GenericRelation)
 
+    def test_many_to_many_should_trigger_warning(self):
+        # We always want to throw a warning if many_to_many is used regardless
+        # of if it alters the return type or not.
+        with warnings.catch_warnings(record=True) as warning:
+            warnings.simplefilter("always")
+            Person._meta.get_field('m2m_base', many_to_many=True)
+        self.assertEqual([RemovedInDjango20Warning], [w.message.__class__ for w in warning])
+
     def test_get_m2m_field_invalid(self):
         with warnings.catch_warnings(record=True) as warning:
             warnings.simplefilter("always")

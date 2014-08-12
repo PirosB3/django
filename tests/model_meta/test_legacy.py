@@ -153,7 +153,7 @@ class VirtualFieldsTests(OptionsBaseTests):
 class GetFieldByNameTests(IgnorePendingDeprecationWarningsMixin, OptionsBaseTests):
 
     def test_get_data_field(self):
-        field_info = Person._meta.get_field_by_name('data_abstract')
+        field_info = Person._meta.get_field_by_name('pure_data_abstract')
         self.assertEqual(field_info[1:], (BasePerson, True, False))
         self.assertIsInstance(field_info[0], CharField)
 

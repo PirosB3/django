@@ -142,7 +142,7 @@ class Collector(object):
         # Foreign keys pointing to this model, both from m2m and other
         # models.
         related_opts = chain(
-            opts.get_fields(data=False, related_objects=True, include_hidden=True),
+            opts.get_fields(pure_data=False, relation_data=False, related_objects=True, include_hidden=True),
             get_related_objects_on_proxies(opts)
         )
 
@@ -199,7 +199,7 @@ class Collector(object):
 
         if collect_related:
             related_opts = chain(
-                model._meta.get_fields(data=False, related_objects=True,
+                model._meta.get_fields(pure_data=False, relation_data=False, related_objects=True,
                                        include_hidden=True),
                 get_related_objects_on_proxies(model._meta)
             )

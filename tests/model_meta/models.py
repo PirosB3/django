@@ -10,8 +10,8 @@ class Relation(models.Model):
 
 class AbstractPerson(models.Model):
     # DATA fields
-    data_abstract = models.CharField(max_length=10)
-    fk_abstract = models.ForeignKey(Relation, related_name='fk_abstract_rel')
+    pure_data_abstract = models.CharField(max_length=10)
+    relation_data_abstract = models.ForeignKey(Relation, related_name='fk_abstract_rel')
 
     # M2M fields
     m2m_abstract = models.ManyToManyField(Relation, related_name='m2m_abstract_rel')
@@ -40,8 +40,8 @@ class AbstractPerson(models.Model):
 
 class BasePerson(AbstractPerson):
     # DATA fields
-    data_base = models.CharField(max_length=10)
-    fk_base = models.ForeignKey(Relation, related_name='fk_base_rel')
+    pure_data_base = models.CharField(max_length=10)
+    relation_data_base = models.ForeignKey(Relation, related_name='fk_base_rel')
 
     # M2M fields
     m2m_base = models.ManyToManyField(Relation, related_name='m2m_base_rel')
@@ -67,8 +67,8 @@ class BasePerson(AbstractPerson):
 
 class Person(BasePerson):
     # DATA fields
-    data_inherited = models.CharField(max_length=10)
-    fk_inherited = models.ForeignKey(Relation, related_name='fk_concrete_rel')
+    pure_data_inherited = models.CharField(max_length=10)
+    relation_data_inherited = models.ForeignKey(Relation, related_name='fk_concrete_rel')
 
     # M2M Fields
     m2m_inherited = models.ManyToManyField(Relation, related_name='m2m_concrete_rel')

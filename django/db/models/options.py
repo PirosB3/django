@@ -370,19 +370,19 @@ class Options(object):
         its parents.
         All hidden and proxy fields are omitted.
         """
-        return self._make_immutable_fields_list(self.get_fields(data=False, m2m=True))
+        return self._make_immutable_fields_list(self.get_fields(pure_data=False, relation_data=False, m2m=True))
 
     @raise_deprecation(suggested_alternative="get_fields()")
     def get_m2m_with_model(self):
         return [self._map_model(f) for f in
-                self.get_fields(data=False, m2m=True)]
+                self.get_fields(pure_data=False, relation_data=False, m2m=True)]
 
     @cached_property
     def concrete_fields_map(self):
         res = {}
 
         # call get_fields with export_name_map=true in order to have a field_instance -> names map
-        fields = self.get_fields(m2m=True, data=True, export_name_map=True)
+        fields = self.get_fields(m2m=True, pure_data=True, relation_data=True, export_name_map=True)
         for field, names in six.iteritems(fields):
             # map each possible name for a field to its field instance
             for name in names:
@@ -394,7 +394,7 @@ class Options(object):
         res = {}
 
         # call get_fields with export_name_map=true in order to have a field_instance -> names map
-        fields = self.get_fields(m2m=True, data=True, related_objects=True, related_m2m=True,
+        fields = self.get_fields(m2m=True, pure_data=True, relation_data=True, related_objects=True, related_m2m=True,
                                  related_virtual=True, export_name_map=True)
         for field, names in six.iteritems(fields):
             # map each possible name for a field to its field instance
@@ -450,7 +450,7 @@ class Options(object):
                                 include_proxy_eq=False):
         include_parents = local_only is False
         fields = self.get_fields(
-            data=False, related_objects=True,
+            pure_data=False, relation_data=False, related_objects=True,
             include_parents=include_parents,
             include_hidden=include_hidden,
         )
@@ -477,11 +477,13 @@ class Options(object):
 
     @raise_deprecation(suggested_alternative="get_fields()")
     def get_all_related_many_to_many_objects(self, local_only=False):
-        return list(self.get_fields(data=False, related_m2m=True, include_parents=local_only is not True))
+        return list(self.get_fields(
+            pure_data=False, relation_data=False,
+            related_m2m=True, include_parents=local_only is not True))
 
     @raise_deprecation(suggested_alternative="get_fields()")
     def get_all_related_m2m_objects_with_model(self):
-        return [self._map_model(f) for f in self.get_fields(data=False, related_m2m=True)]
+        return [self._map_model(f) for f in self.get_fields(pure_data=False, relation_data=False, related_m2m=True)]
 
     def get_base_chain(self, model):
         """
@@ -604,7 +606,10 @@ class Options(object):
         self._get_field_cache = {}
         self._get_fields_cache = {}
 
-    def get_fields(self, m2m=False, data=True, virtual=False, related_m2m=False, related_objects=False, related_virtual=False,
+    def get_fields(self,
+                   m2m=False, pure_data=True, virtual=False,
+                   relation_data=True,
+                   related_m2m=False, related_objects=False, related_virtual=False,
                    include_parents=True, include_hidden=False, **kwargs):
         """
         Returns a list of fields associated to the model. By default will only search in data.
@@ -625,7 +630,7 @@ class Options(object):
 
         # Creates a cache key composed of all arguments
         export_name_map = kwargs.get('export_name_map', False)
-        cache_key = (m2m, data, related_m2m, related_objects, virtual,
+        cache_key = (m2m, pure_data, related_m2m, related_objects, virtual,
                      include_parents, include_hidden, export_name_map)
 
         try:
@@ -650,7 +655,7 @@ class Options(object):
                 # Recursively call get_fields on each parent, with the same options provided
                 # in this call
                 for parent in self.parents:
-                    for obj, query_name in six.iteritems(parent._meta.get_fields(data=False, related_m2m=True,
+                    for obj, query_name in six.iteritems(parent._meta.get_fields(pure_data=False, relation_data=False, related_m2m=True,
                                                          **options)):
                         # In order for a related M2M object to be valid, its creation
                         # counter must be > 0 and must be in the parent list
@@ -673,7 +678,7 @@ class Options(object):
                 # Recursively call get_fields on each parent, with the same options provided
                 # in this call
                 for parent in self.parents:
-                    for obj, query_name in six.iteritems(parent._meta.get_fields(data=False, related_objects=True,
+                    for obj, query_name in six.iteritems(parent._meta.get_fields(pure_data=False, relation_data=False, related_objects=True,
                                                          **dict(options, include_hidden=True))):
                         if not ((obj.field.creation_counter < 0
                                 or obj.field.rel.parent_link)
@@ -699,20 +704,32 @@ class Options(object):
             if include_parents:
                 for parent in self.parents:
                     # Extend the fields dict with all the m2m fields of each parent.
-                    fields.update(parent._meta.get_fields(data=False, m2m=True, **options))
+                    fields.update(parent._meta.get_fields(pure_data=False, relation_data=False, m2m=True, **options))
             fields.update(
                 (field, {field.name, field.attname})
                 for field in self.local_many_to_many
             )
 
-        if data:
+        if pure_data:
             if include_parents:
                 for parent in self.parents:
                     # Extend the fields dict with all the m2m fields of each parent.
-                    fields.update(parent._meta.get_fields(**options))
+                    fields.update(parent._meta.get_fields(pure_data=True, relation_data=False, **options))
             fields.update(
                 (field, {field.name, field.attname})
                 for field in self.local_fields
+                if not hasattr(field, 'rel')
+            )
+
+        if relation_data:
+            if include_parents:
+                for parent in self.parents:
+                    # Extend the fields dict with all the m2m fields of each parent.
+                    fields.update(parent._meta.get_fields(pure_data=False, relation_data=True, **options))
+            fields.update(
+                (field, {field.name, field.attname})
+                for field in self.local_fields
+                if hasattr(field, 'rel')
             )
 
         if virtual or related_virtual:

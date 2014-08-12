@@ -658,7 +658,7 @@ class SQLCompiler(object):
         if restricted:
             related_fields = [
                 (o.field, o.model)
-                for o in opts.get_fields(data=False, related_objects=True)
+                for o in opts.get_fields(pure_data=False, relation_data=False, related_objects=True)
                 if o.field.unique
             ]
             for f, model in related_fields:

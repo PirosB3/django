@@ -633,7 +633,7 @@ class MigrationAutodetector(object):
             # and the removal of all its own related fields, and if it's
             # a through model the field that references it.
             dependencies = []
-            for related_object in model._meta.get_fields(data=False, related_objects=True):
+            for related_object in model._meta.get_fields(pure_data=False, relation_data=False, related_objects=True):
                 dependencies.append((
                     related_object.model._meta.app_label,
                     related_object.model._meta.object_name,
@@ -646,7 +646,7 @@ class MigrationAutodetector(object):
                     related_object.field.name,
                     "alter",
                 ))
-            for related_object in model._meta.get_fields(data=False, related_m2m=True):
+            for related_object in model._meta.get_fields(pure_data=False, relation_data=False, related_m2m=True):
                 dependencies.append((
                     related_object.model._meta.app_label,
                     related_object.model._meta.object_name,

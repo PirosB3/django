@@ -185,10 +185,10 @@ class GetFieldByNameTests(OptionsBaseTests):
     def test_get_generic_foreign_key(self):
         # For historic reasons generic foreign keys aren't available.
         with self.assertRaises(FieldDoesNotExist):
-            Person._meta.get_field('content_object_base', virtual=True)
+            Person._meta.get_field('content_object_base', include_related=True)
 
     def test_get_generic_relation(self):
-        field_info = self._details(Person, Person._meta.get_field('generic_relation_base'))
+        field_info = self._details(Person, Person._meta.get_field('generic_relation_base', include_related=True))
         self.assertEqual(field_info[1:], (None, True, False))
         self.assertIsInstance(field_info[0], GenericRelation)
 

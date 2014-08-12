@@ -382,7 +382,7 @@ class Options(object):
         res = {}
 
         # call get_fields with export_name_map=true in order to have a field_instance -> names map
-        fields = self.get_fields(m2m=True, data=True, virtual=True, export_name_map=True)
+        fields = self.get_fields(m2m=True, data=True, export_name_map=True)
         for field, names in six.iteritems(fields):
             # map each possible name for a field to its field instance
             for name in names:
@@ -394,8 +394,8 @@ class Options(object):
         res = {}
 
         # call get_fields with export_name_map=true in order to have a field_instance -> names map
-        fields = self.get_fields(m2m=True, data=True, virtual=True, related_objects=True, related_m2m=True,
-                                 export_name_map=True)
+        fields = self.get_fields(m2m=True, data=True, related_objects=True, related_m2m=True,
+                                 related_virtual=True, export_name_map=True)
         for field, names in six.iteritems(fields):
             # map each possible name for a field to its field instance
             for name in names:
@@ -413,7 +413,8 @@ class Options(object):
         # NOTE: previous get_field API had a many_to_many key. This key
         # has now become m2m. In order to avoid breaking other's implementation
         # we will catch the use of 'many_to_many'.
-        if 'many_to_many' in kwargs:
+        many_to_many = kwargs.pop('many_to_many', None)
+        if many_to_many in kwargs:
 
             # If no many_to_many fields are wanted, create a new dictionary with
             # without ManyToManyField instances.
@@ -429,6 +430,7 @@ class Options(object):
                 RemovedInDjango20Warning
             )
 
+        assert len(kwargs.keys()) == 0
         try:
             # Retreive field instance by name from cached or just-computer field map
             return field_map[field_name]
@@ -602,7 +604,7 @@ class Options(object):
         self._get_field_cache = {}
         self._get_fields_cache = {}
 
-    def get_fields(self, m2m=False, data=True, related_m2m=False, related_objects=False, virtual=False,
+    def get_fields(self, m2m=False, data=True, virtual=False, related_m2m=False, related_objects=False, related_virtual=False,
                    include_parents=True, include_hidden=False, **kwargs):
         """
         Returns a list of fields associated to the model. By default will only search in data.
@@ -715,22 +717,17 @@ class Options(object):
 
         if virtual:
             # Virtual fields to not need to recursively search parents.
-            if export_name_map:
-                # If we are exporting a map (ex. called by get_field) we do not
-                # want to include GenericForeignKeys, but only GenericRelations
-                # (Ref. #22994).
-                fields.update(
-                    (field, {field.name, field.attname})
-                    for field in self.virtual_fields
-                    if hasattr(field, 'related')
-                )
-            else:
-                # If we are just listing fields (no map export), we include all
-                # virtual fields.
-                fields.update(
-                    (field, {field.name})
-                    for field in self.virtual_fields
-                )
+            fields.update(
+                (field, {field.name})
+                for field in self.virtual_fields
+                if not hasattr(field, 'related')
+            )
+        if related_virtual:
+            fields.update(
+                (field, {field.name, field.attname})
+                for field in self.virtual_fields
+                if hasattr(field, 'related')
+            )
 
         if not export_name_map:
             # By default, fields contains field instances as keys and all possible names

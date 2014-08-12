@@ -466,23 +466,31 @@ TEST_RESULTS = {
             'm2m_concrete_rel',
         ],
     },
-    'virtual_fields': {
+    'related_virtual': {
         AbstractPerson: [
             'generic_relation_abstract',
-            'content_object_abstract',
         ],
         BasePerson: [
             'generic_relation_base',
-            'content_object_base',
             'generic_relation_abstract',
+        ],
+        Person: [
+            'generic_relation_concrete',
+            'generic_relation_base',
+            'generic_relation_abstract',
+        ],
+    },
+    'virtual_fields': {
+        AbstractPerson: [
+            'content_object_abstract',
+        ],
+        BasePerson: [
+            'content_object_base',
             'content_object_abstract',
         ],
         Person: [
             'content_object_concrete',
-            'generic_relation_concrete',
-            'generic_relation_base',
             'content_object_base',
-            'generic_relation_abstract',
             'content_object_abstract',
         ],
     },

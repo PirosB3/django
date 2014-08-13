@@ -603,7 +603,7 @@ class Options(object):
 
     def _expire_cache(self):
         for cache_key in ('fields', 'concrete_fields', 'local_concrete_fields', 'field_names',
-                          'concrete_fields_map', 'all_fields_map'):
+                          'concrete_fields_map', 'all_fields_map', 'related_objects', 'related_m2m'):
             try:
                 delattr(self, cache_key)
             except AttributeError:
@@ -758,6 +758,30 @@ class Options(object):
         # In order to avoid list manipulation. Always
         # return a shallow copy of the results
         return fields
+
+    @cached_property
+    def related_objects(self):
+        """
+        Returns a list of all many to many fields on the model and
+        it's parents.
+        All hidden and proxy fields are omitted.
+        """
+        return self.get_fields(
+            pure_data=False, m2m=False, pure_virtual=False,
+            relation_data=False, relation_virtual=False,
+            related_objects=True)
+
+    @cached_property
+    def related_m2m(self):
+        """
+        Returns a list of all many to many fields on the model and
+        it's parents.
+        All hidden and proxy fields are omitted.
+        """
+        return self.get_fields(
+            pure_data=False, m2m=False, pure_virtual=False,
+            relation_data=False, relation_virtual=False,
+            related_m2m=True)
 
     @cached_property
     def field_names(self):

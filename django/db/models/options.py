@@ -382,7 +382,10 @@ class Options(object):
         res = {}
 
         # call get_fields with export_name_map=true in order to have a field_instance -> names map
-        fields = self.get_fields(m2m=True, pure_data=True, relation_data=True, export_name_map=True)
+        fields = self.get_fields(
+            m2m=True, pure_data=True, pure_virtual=True,
+            relation_data=True,
+            export_name_map=True)
         for field, names in six.iteritems(fields):
             # map each possible name for a field to its field instance
             for name in names:
@@ -394,8 +397,11 @@ class Options(object):
         res = {}
 
         # call get_fields with export_name_map=true in order to have a field_instance -> names map
-        fields = self.get_fields(m2m=True, pure_data=True, relation_data=True, related_objects=True, related_m2m=True,
-                                 related_virtual=True, export_name_map=True)
+        fields = self.get_fields(
+            m2m=True, pure_data=True, pure_virtual=True,
+            relation_data=True,
+            related_objects=True, related_m2m=True, related_virtual=True,
+            export_name_map=True)
         for field, names in six.iteritems(fields):
             # map each possible name for a field to its field instance
             for name in names:

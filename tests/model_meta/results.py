@@ -53,6 +53,41 @@ TEST_RESULTS = {
             'proxyperson_hidden_id',
         ],
     },
+    'relation_data_fields': {
+        Person: [
+            'relation_data_abstract_id',
+            'data_not_concrete_abstract',
+            'content_type_abstract_id',
+            'relation_data_base_id',
+            'data_not_concrete_base',
+            'content_type_base_id',
+            'baseperson_ptr_id',
+            'relation_data_inherited_id',
+            'data_not_concrete_inherited',
+            'content_type_concrete_id',
+        ],
+        BasePerson: [
+            'relation_data_abstract_id',
+            'data_not_concrete_abstract',
+            'content_type_abstract_id',
+            'relation_data_base_id',
+            'data_not_concrete_base',
+            'content_type_base_id',
+        ],
+        AbstractPerson: [
+            'relation_data_abstract_id',
+            'data_not_concrete_abstract',
+            'content_type_abstract_id',
+        ],
+        Relating: [
+            'baseperson_id',
+            'baseperson_hidden_id',
+            'person_id',
+            'person_hidden_id',
+            'proxyperson_id',
+            'proxyperson_hidden_id',
+        ],
+    },
     'pure_data_fields': {
         Person: [
             'id',
@@ -525,7 +560,7 @@ TEST_RESULTS = {
             'generic_relation_abstract',
         ],
     },
-    'virtual_fields': {
+    'relating_virtual_fields': {
         AbstractPerson: [
             'content_object_abstract',
         ],

@@ -72,6 +72,13 @@ class DataTests(OptionsBaseTests):
         for model, expected_result in TEST_RESULTS['pure_data_fields'].items():
             fields = model._meta.get_fields(pure_data=True, relation_data=False)
             self.assertEqual([f.attname for f in fields], expected_result)
+            self.assertTrue(all(isinstance(f, Field) for f in fields))
+
+    def test_relation_data_fields(self):
+        for model, expected_result in TEST_RESULTS['relation_data_fields'].items():
+            fields = model._meta.get_fields(pure_data=False, relation_data=True)
+            self.assertEqual([f.attname for f in fields], expected_result)
+            self.assertTrue(all(bool(k.rel.to) for k in fields))
 
 
 class M2MTests(OptionsBaseTests):
@@ -159,14 +166,32 @@ class RelatedM2MTests(OptionsBaseTests):
 
 class VirtualFieldsTests(OptionsBaseTests):
 
-    def test_virtual_fields(self):
-        for model, expected_names in TEST_RESULTS['virtual_fields'].items():
+    def test_pure_virtual_fields(self):
+
+        # There are currently no pure virtual fields in the Django codebase. Said this,
+        # we do want to have pure virtual fields for the future. Projects like CompositeField
+        # fit this description perfectly.
+
+        class CompositeField(object):
+            def __init__(self, name):
+                self.name = name
+
+        # Adding a fake CompositeField instance to the Person metaclass
+        Person._meta.add_field(CompositeField("my_composite"), virtual=True)
+
+        pure_virtual = Person._meta.get_fields(pure_data=False, relation_data=False, pure_virtual=True)
+        self.assertEquals(['my_composite'], [f.name for f in pure_virtual])
+        self.assertEquals(Person._meta.get_field('my_composite').name, "my_composite")
+
+        # Remove the fake virtual field from virtual_fields, and flush the cache
+        Person._meta.virtual_fields.remove(Person._meta.get_field('my_composite'))
+        Person._meta.apps.clear_cache()
+
+    def test_relating_virtual_fields(self):
+        for model, expected_names in TEST_RESULTS['relating_virtual_fields'].items():
             objects = model._meta.get_fields(pure_data=False, relation_data=False,
-                                             pure_virtual=True, relation_virtual=True)
+                                             relation_virtual=True)
             self.assertEqual(sorted([f.name for f in objects]), sorted(expected_names))
-
-
-class RelatedVirtualFieldsTests(OptionsBaseTests):
 
     def test_related_virtual_fields(self):
         for model, expected_names in TEST_RESULTS['related_virtual'].items():

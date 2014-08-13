@@ -436,7 +436,6 @@ class Options(object):
                 RemovedInDjango20Warning
             )
 
-        assert len(kwargs.keys()) == 0
         try:
             # Retreive field instance by name from cached or just-computer field map
             return field_map[field_name]
@@ -734,20 +733,18 @@ class Options(object):
         if pure_virtual or related_virtual or relation_virtual:
             # Virtual fields to not need to recursively search parents.
             for field in self.virtual_fields:
-
                 is_related = hasattr(field, 'related')
                 is_relation = hasattr(field, 'relation')
 
-                # Virtual fields can be related, such as a GenericRelation
-                if is_related and related_virtual:
-                    fields[field] = {field.name, field.attname}
-
-                # Virtual fields can be a relation, such as a GenericForeignKey
-                elif is_relation and relation_virtual:
-                    fields[field] = {field.name}
-
+                if is_related or is_relation:
+                    # Virtual fields can be related, such as a GenericRelation
+                    if is_related and related_virtual:
+                        fields[field] = {field.name, field.attname}
+                    # Virtual fields can be a relation, such as a GenericForeignKey
+                    elif is_relation and relation_virtual:
+                        fields[field] = {field.name}
+                elif pure_virtual:
                 # All other virtual fields are defined as virtual
-                elif pure_virtual and not is_relation and not is_related:
                     fields[field] = {field.name}
 
         if not export_name_map:

@@ -21,6 +21,7 @@ class GenericForeignKey(object):
     Provides a generic relation to any object through content-type/object-id
     fields.
     """
+    relation = True
 
     def __init__(self, ct_field="content_type", fk_field="object_id", for_concrete_model=True):
         self.ct_field = ct_field

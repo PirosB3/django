@@ -607,8 +607,8 @@ class Options(object):
         self._get_fields_cache = {}
 
     def get_fields(self,
-                   m2m=False, pure_data=True, virtual=False,
-                   relation_data=True,
+                   m2m=False, pure_data=True, pure_virtual=False,
+                   relation_data=True, relation_virtual=False,
                    related_m2m=False, related_objects=False, related_virtual=False,
                    include_parents=True, include_hidden=False, **kwargs):
         """
@@ -630,8 +630,8 @@ class Options(object):
 
         # Creates a cache key composed of all arguments
         export_name_map = kwargs.get('export_name_map', False)
-        cache_key = (m2m, pure_data, virtual,
-                     relation_data,
+        cache_key = (m2m, pure_data, pure_virtual,
+                     relation_data, relation_virtual,
                      related_m2m, related_objects, related_virtual,
                      include_parents, include_hidden, export_name_map)
 
@@ -725,13 +725,23 @@ class Options(object):
                     if ((points_to_model and relation_data) or (not points_to_model and pure_data)):
                         fields[f] = {f.name, f.attname}
 
-        if virtual or related_virtual:
+        if pure_virtual or related_virtual or relation_virtual:
             # Virtual fields to not need to recursively search parents.
             for field in self.virtual_fields:
+
                 is_related = hasattr(field, 'related')
+                is_relation = hasattr(field, 'relation')
+
+                # Virtual fields can be related, such as a GenericRelation
                 if is_related and related_virtual:
                     fields[field] = {field.name, field.attname}
-                if not is_related and virtual:
+
+                # Virtual fields can be a relation, such as a GenericForeignKey
+                elif is_relation and relation_virtual:
+                    fields[field] = {field.name}
+
+                # All other virtual fields are defined as virtual
+                elif pure_virtual and not is_relation and not is_related:
                     fields[field] = {field.name}
 
         if not export_name_map:

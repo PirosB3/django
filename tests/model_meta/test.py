@@ -161,7 +161,8 @@ class VirtualFieldsTests(OptionsBaseTests):
 
     def test_virtual_fields(self):
         for model, expected_names in TEST_RESULTS['virtual_fields'].items():
-            objects = model._meta.get_fields(pure_data=False, relation_data=False, virtual=True)
+            objects = model._meta.get_fields(pure_data=False, relation_data=False,
+                                             pure_virtual=True, relation_virtual=True)
             self.assertEqual(sorted([f.name for f in objects]), sorted(expected_names))
 
 

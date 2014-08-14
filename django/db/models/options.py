@@ -554,19 +554,15 @@ class Options(object):
 
         all_models = self.apps.get_models(include_auto_created=True)
         for model in all_models:
-            for f in chain(model._meta.fields, model._meta.virtual_fields):
-                # Check if the field has a relation to another model
-                if hasattr(f, 'rel') and f.rel and f.has_class_relation:
-                    # Set options_instance -> field
-                    related_objects_graph[f.rel.to._meta].append(f)
+            for f in model._meta.get_fields(pure_data=False, relation_data=True, related_virtual=True):
+                # Set options_instance -> field
+                related_objects_graph[f.rel.to._meta].append(f)
 
             if not model._meta.auto_created:
                 # Many to many relations are never auto-created
-                for f in model._meta.many_to_many:
-                    # Check if the field has a relation to another model
-                    if f.rel and not isinstance(f.rel.to, six.string_types):
-                        # Set options_instance -> field
-                        related_m2m_graph[f.rel.to._meta].append(f)
+                for f in model._meta.get_fields(pure_data=False, relation_data=False, relation_m2m=True):
+                    # Set options_instance -> field
+                    related_m2m_graph[f.rel.to._meta].append(f)
 
         for model in all_models:
             # Set the realtion_tree using the internal __dict__.
@@ -746,7 +742,7 @@ class Options(object):
                     elif is_relation and relation_virtual:
                         fields[field] = {field.name}
                 elif pure_virtual:
-                # All other virtual fields are defined as virtual
+                    # All other virtual fields are defined as virtual
                     fields[field] = {field.name}
 
         if not export_name_map:

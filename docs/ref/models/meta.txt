@@ -253,9 +253,9 @@ Retrieve field instances
          <RelatedObject: auth:user_user_permissions related to user>,
          <RelatedObject: admin:logentry related to user>)
 
-        The flags are a combination of field types and field filters. All possible combinations
-        of filters and fields are possible, although some will have no effect (such as
-        ``include_hidden`` combined with ``pure_data`` or ``pure_m2m`` by itself).
+    The flags are a combination of field types and field filters. All possible combinations
+    of filters and fields are possible, although some will have no effect (such as
+    ``include_hidden`` combined with ``pure_data`` or ``pure_m2m`` by itself).
 
     +-----------------+-------------------------+--------------------------------+
     |                 | Include Hidden          | Include Parents                |

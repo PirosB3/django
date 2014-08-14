@@ -85,14 +85,14 @@ class M2MTests(OptionsBaseTests):
 
     def test_many_to_many(self):
         for model, expected_result in TEST_RESULTS['many_to_many'].items():
-            fields = model._meta.get_fields(pure_data=False, relation_data=False, m2m=True)
+            fields = model._meta.get_fields(pure_data=False, relation_data=False, relation_m2m=True)
             self.assertEqual([f.attname for f in fields], expected_result)
             self.assertTrue(all([isinstance(f.rel, related.ManyToManyRel)
                                  for f in fields]))
 
     def test_many_to_many_with_model(self):
         for model, expected_result in TEST_RESULTS['many_to_many_with_model'].items():
-            models = [self._model(model, field) for field in model._meta.get_fields(pure_data=False, relation_data=False, m2m=True)]
+            models = [self._model(model, field) for field in model._meta.get_fields(pure_data=False, relation_data=False, relation_m2m=True)]
             self.assertEqual(models, expected_result)
 
 
@@ -152,13 +152,13 @@ class RelatedM2MTests(OptionsBaseTests):
                               for o in objects], expected)
 
     def test_related_m2m_asymmetrical(self):
-        m2m = Person._meta.get_fields(pure_data=False, relation_data=False, m2m=True)
+        m2m = Person._meta.get_fields(pure_data=False, relation_data=False, relation_m2m=True)
         self.assertTrue('following_base' in [f.attname for f in m2m])
         related_m2m = Person._meta.get_fields(pure_data=False, relation_data=False, related_m2m=True)
         self.assertTrue('followers_base' in [o.field.related_query_name() for o in related_m2m])
 
     def test_related_m2m_symmetrical(self):
-        m2m = Person._meta.get_fields(pure_data=False, relation_data=False, m2m=True)
+        m2m = Person._meta.get_fields(pure_data=False, relation_data=False, relation_m2m=True)
         self.assertTrue('friends_base' in [f.attname for f in m2m])
         related_m2m = Person._meta.get_fields(pure_data=False, relation_data=False, related_m2m=True)
         self.assertIn('friends_inherited_rel_+', [o.field.related_query_name() for o in related_m2m])

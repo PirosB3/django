@@ -370,12 +370,12 @@ class Options(object):
         its parents.
         All hidden and proxy fields are omitted.
         """
-        return self._make_immutable_fields_list(self.get_fields(pure_data=False, relation_data=False, m2m=True))
+        return self._make_immutable_fields_list(self.get_fields(pure_data=False, relation_data=False, relation_m2m=True))
 
     @raise_deprecation(suggested_alternative="get_fields()")
     def get_m2m_with_model(self):
         return [self._map_model(f) for f in
-                self.get_fields(pure_data=False, relation_data=False, m2m=True)]
+                self.get_fields(pure_data=False, relation_data=False, relation_m2m=True)]
 
     @cached_property
     def concrete_fields_map(self):
@@ -383,9 +383,10 @@ class Options(object):
 
         # call get_fields with export_name_map=true in order to have a field_instance -> names map
         fields = self.get_fields(
-            m2m=True, pure_data=True, pure_virtual=True,
-            relation_data=True,
-            export_name_map=True)
+            pure_data=True, pure_virtual=True,
+            relation_data=True, relation_m2m=True,
+            export_name_map=True
+        )
         for field, names in six.iteritems(fields):
             # map each possible name for a field to its field instance
             for name in names:
@@ -398,10 +399,11 @@ class Options(object):
 
         # call get_fields with export_name_map=true in order to have a field_instance -> names map
         fields = self.get_fields(
-            m2m=True, pure_data=True, pure_virtual=True,
-            relation_data=True,
+            pure_data=True, pure_virtual=True,
+            relation_data=True, relation_m2m=True,
             related_objects=True, related_m2m=True, related_virtual=True,
-            export_name_map=True)
+            export_name_map=True
+        )
         for field, names in six.iteritems(fields):
             # map each possible name for a field to its field instance
             for name in names:
@@ -612,8 +614,8 @@ class Options(object):
         self._get_fields_cache = {}
 
     def get_fields(self,
-                   m2m=False, pure_data=True, pure_virtual=False,
-                   relation_data=True, relation_virtual=False,
+                   pure_m2m=False, pure_data=True, pure_virtual=False,
+                   relation_m2m=False, relation_data=True, relation_virtual=False,
                    related_m2m=False, related_objects=False, related_virtual=False,
                    include_parents=True, include_hidden=False, **kwargs):
         """
@@ -634,9 +636,9 @@ class Options(object):
         """
 
         # Creates a cache key composed of all arguments
-        export_name_map = kwargs.get('export_name_map', False)
-        cache_key = (m2m, pure_data, pure_virtual,
-                     relation_data, relation_virtual,
+        export_name_map = kwargs.pop('export_name_map', False)
+        cache_key = (pure_m2m, pure_data, pure_virtual,
+                     relation_m2m, relation_data, relation_virtual,
                      related_m2m, related_objects, related_virtual,
                      include_parents, include_hidden, export_name_map)
 
@@ -707,11 +709,11 @@ class Options(object):
                     # is not intentionally hidden, add to the fields dict
                     fields[f.related] = {f.related_query_name()}
 
-        if m2m:
+        if relation_m2m:
             if include_parents:
                 for parent in self.parents:
                     # Extend the fields dict with all the m2m fields of each parent.
-                    fields.update(parent._meta.get_fields(pure_data=False, relation_data=False, m2m=True, **options))
+                    fields.update(parent._meta.get_fields(pure_data=False, relation_data=False, relation_m2m=True, **options))
             fields.update(
                 (field, {field.name, field.attname})
                 for field in self.local_many_to_many
@@ -767,9 +769,9 @@ class Options(object):
         All hidden and proxy fields are omitted.
         """
         return self.get_fields(
-            pure_data=False, m2m=False, pure_virtual=False,
-            relation_data=False, relation_virtual=False,
-            related_objects=True)
+            pure_data=False, pure_m2m=False, pure_virtual=False,
+            relation_data=False, relation_m2m=False, relation_virtual=False,
+            related_objects=True, related_m2m=False, related_virtual=False)
 
     @cached_property
     def related_m2m(self):
@@ -779,9 +781,9 @@ class Options(object):
         All hidden and proxy fields are omitted.
         """
         return self.get_fields(
-            pure_data=False, m2m=False, pure_virtual=False,
-            relation_data=False, relation_virtual=False,
-            related_m2m=True)
+            pure_data=False, pure_m2m=False, pure_virtual=False,
+            relation_data=False, relation_m2m=False, relation_virtual=False,
+            related_objects=False, related_m2m=True, related_virtual=False)
 
     @cached_property
     def field_names(self):
@@ -791,7 +793,12 @@ class Options(object):
         All hidden and proxy fields are omitted.
         """
         res = set()
-        for _, names in six.iteritems(self.get_fields(m2m=True, related_objects=True,
-                                          related_m2m=True, virtual=True, export_name_map=True)):
+        fields = self.get_fields(
+            pure_data=True, pure_m2m=True, pure_virtual=True,
+            relation_data=True, relation_m2m=True, relation_virtual=True,
+            related_objects=True, related_m2m=True, related_virtual=True,
+            export_name_map=True
+        )
+        for _, names in six.iteritems(fields):
             res.update(name for name in names if not name.endswith('+'))
         return res

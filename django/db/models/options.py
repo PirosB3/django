@@ -750,11 +750,9 @@ class Options(object):
             # if the field instance as values. when get_fields is called, we only want to
             # return field instances, so we just preserve the keys.
             fields = self._make_immutable_fields_list(fields.keys())
+            # Store result into cache for later access
+            self._get_fields_cache[cache_key] = fields
 
-        # Store result into cache for later access
-        self._get_fields_cache[cache_key] = fields
-        # In order to avoid list manipulation. Always
-        # return a shallow copy of the results
         return fields
 
     @cached_property

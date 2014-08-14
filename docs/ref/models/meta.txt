@@ -78,7 +78,7 @@ A field that defines a relation pointing to another model. For example a
 ``ManyToManyField``, a ``ForeignKey``, and a ``GenericForeignKey``.
 
 A Related field
-~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~
 
 A link that is created as a consequence of a Relation field pointing to a
 model. A related field is an inverse link from the pointed model to the
@@ -94,6 +94,17 @@ relation model. For example a ``GenericObject``, and a ``GenericRelation``.
 
 In this case, ``City`` has a related field from ``Person``
 
+Below is a category X type matrix of each possible combination:
+
++---------------+---------------+------------------+-------------------+
+|               | Data field    | M2M field        | Virtual field     |
++===============+===============+==================+===================+
+| Pure field    | CharField     | <Does not exist> | CompositeField    |
++---------------+---------------+------------------+-------------------+
+|Relation field | ForeignKey    | ManyToManyField  | GenericForeignKey |
++---------------+---------------+------------------+-------------------+
+|Related field  | RelatedObject | RelatedObject    | GenericRelation   |
++---------------+---------------+------------------+-------------------+
 
 .. _model-meta-field-filters:
 

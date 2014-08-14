@@ -30,48 +30,17 @@ A model can have several types of fields:
 Data fields
 ~~~~~~~~~~~
 
-A data field is any field that has an entry on the database, for
+A field that requires a single column on the database. For
 example a ``CharField``, ``BooleanField``, a ``ForeignKey``.
 
 Many-to-many fields
 ~~~~~~~~~~~~~~~~~~~
 
-A field that is of type ``ManyToManyField``
-
-Related Object
-~~~~~~~~~~~~~~
-
-A Related Object is a one-to-many relation from another model (such as a
-:class:`django.db.models.ForeignKey`) that points to the current model.
-
-.. code-block:: python
-
-    class City(models.Model):
-        name = models.CharField(max_length=100)
-
-    class Person(models.Model):
-        city = models.ForeignKey(City)
-
-In this case, ``City`` has a related object from ``Person``
-
-Related many-to-many objects
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-A Related many-to-many object is a many-to-many relation from another model
-that points to the current model.
-
-.. code-block:: python
-
-    class City(models.Model):
-        name = models.CharField(max_length=100)
-
-    class Person(models.Model):
-        cities_lived_in = models.ManyToManyField(City)
-
-In this case, ``City`` has a related many-to-many from ``Person``
+A field that defines a many-to-many relation. For example
+a ``ManyToManyField``.
 
 Virtual fields
-~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~
 
 Virtual fields are model fields that do not necessarily have a corresponding
 database column. they are model fields such as
@@ -88,6 +57,43 @@ database column. they are model fields such as
 and ``object_id`` to keep track of what model type and id is set to ``item``, but
 ``item`` itself does not have a concrete presence on the database.  In this case,
 ``item`` is a virtual field.
+
+.. _model-meta-field-categories:
+
+Field Categories
+================
+
+Each field type fits into one of these categories:
+
+A Pure field
+~~~~~~~~~~~~
+
+A field that is self sufficient on its own, and dosen't involve connections
+with any other model. For example a ``CharField`` and ``BooleanField``.
+
+A Relation field
+~~~~~~~~~~~~~~~~
+
+A field that defines a relation pointing to another model. For example a
+``ManyToManyField``, a ``ForeignKey``, and a ``GenericForeignKey``.
+
+A Related field
+~~~~~~~~~~~~~~~~
+
+A link that is created as a consequence of a Relation field pointing to a
+model. A related field is an inverse link from the pointed model to the
+relation model. For example a ``GenericObject``, and a ``GenericRelation``.
+
+.. code-block:: python
+
+    class City(models.Model):
+        name = models.CharField(max_length=100)
+
+    class Person(models.Model):
+        city = models.ForeignKey(City)
+
+In this case, ``City`` has a related field from ``Person``
+
 
 .. _model-meta-field-filters:
 
@@ -141,16 +147,16 @@ relational model (such as :class:`django.db.models.ManyToManyField`, or
 Retrieve a field instance by name
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. method:: Options.get_field(field_name, m2m=True, data=True, related_m2m=False, related_objects=False, virtual=False)
+.. method:: Options.get_field(field_name, include_related=False)
 
     Returns the field instance given a name of a field.
 
     ``field_name`` can be the name of a field on a model or it can also be a reverse relation
     name (related query name).
 
-    ``field_name`` is the only **required** field. All the other arguments are flags that
-    are used internally to optimize the lookup. By default, :meth:`Options.get_field()`
-    will only look up data and many-to-many fields, but all field types can be queried.
+    By default, :meth:`Options.get_field()` will only search fields that are pure or a
+    relation, but all field types can be queried.
+    If the ``include_related`` flag is on, also related objects will be searched.
     Hidden and proxied relations are not available. If a field with the given name is not
     found it will raise a `FieldDoesNotExist`` exception.
 
@@ -161,7 +167,7 @@ Retrieve a field instance by name
         >>> User._meta.get_field('username')#  A data field
         <django.db.models.fields.CharField: username>
 
-        >>> User._meta.get_field('logentry', related_objects=True)#  A related object
+        >>> User._meta.get_field('logentry', include_related=True)#  A related object
         <RelatedObject: admin:logentry related to user>
 
         >>> LogEntry._meta.get_field('user')#  ForeignKey can be queried by field name
@@ -196,17 +202,22 @@ Retrieve all field names
          'last_login', 'groups', 'user_permissions', 'password',
          'id', 'date_joined']
 
+                   
+
 Retrieve field instances
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. method:: Options.get_fields(m2m=False, data=True, related_m2m=False, related_objects=False, virtual=False, include_parents=True, include_hidden=False)
+.. method:: Options.get_fields(pure_m2m=False, pure_data=True, pure_virtual=False,
+                               relation_m2m=False, relation_data=True, relation_virtual=False,
+                               related_m2m=False, related_objects=False, related_virtual=False,
+                               include_parents=True, include_hidden=False)
 
     Returns a list of fields given a list of field types and filters.
 
     get_fields() takes a set of flags as parameters and returns a tuple of field instances.
     The flags are a combination of field types and field filters. All possible combinations
     of filters and fields are possible, although some will have no effect (such as
-    ``include_hidden`` combined with ``data`` or ``m2m`` by itself).
+    ``include_hidden`` combined with ``pure_data`` or ``pure_m2m`` by itself).
 
     .. code-block:: python
 
@@ -223,10 +234,10 @@ Retrieve field instances
          <django.db.models.fields.BooleanField: is_active>,
          <django.db.models.fields.DateTimeField: date_joined>)
 
-        >>> User._meta.get_fields(data=False, related_objects=True) # only related_objects
+        >>> User._meta.get_fields(pure_data=False, relation_objects=False, related_objects=True) # only related_objects
         (<RelatedObject: admin:logentry related to user>,)
 
-        >>> User._meta.get_fields(data=False, related_objects=True, include_hidden=True) # only related_objects including hidden
+        >>> User._meta.get_fields(pure_data=False, relation_objects=True, related_objects=True, include_hidden=True) # only related_objects including hidden
         (<RelatedObject: auth:user_groups related to user>,
          <RelatedObject: auth:user_user_permissions related to user>,
          <RelatedObject: admin:logentry related to user>)
@@ -243,17 +254,25 @@ recommended to use the fast-access API for performance reasons.
 
 .. attribute:: Options.fields
 
-    Returns a list of all data fields.
+    Returns a list of all pure and relation data fields.
 
 .. attribute:: Options.concrete_fields
 
-    Returns a list of all concrete data fields.
+    Returns a list of all concrete pure and relation data fields.
 
 .. attribute:: Options.local_concrete_fields
 
-    Returns a list of all concrete data fields that
-    have not been inherited from another model.
+    Returns a list of all concrete pure and relation data fields that have not been
+    inherited from another model.
 
 .. attribute:: Options.many_to_many
 
-    Returns a list of all many-to-many fields.
+    Returns a list of all pure and relation many-to-many fields.
+
+.. attribute:: Options.related_objects
+
+    Returns a list of all related data objects.
+
+.. attribute:: Options.related_m2m
+
+    Returns a list of all related m2m objects.

@@ -94,7 +94,10 @@ relation model. For example a ``GenericObject``, and a ``GenericRelation``.
 
 In this case, ``City`` has a related field from ``Person``
 
-Below is a category X type matrix of each possible combination:
+Field categories example
+========================
+
+Below is a field category X field type matrix of each possible combination:
 
 +---------------+---------------+------------------+-------------------+
 |               | Data field    | M2M field        | Virtual field     |
@@ -150,7 +153,6 @@ relational model (such as :class:`django.db.models.ManyToManyField`, or
         city = models.ForeignKey(City, related_name='+')
 
 ``City`` has a related hidden object from ``Person`` (as you can't access ``person_set``)
-
 
 ``Options API``
 ===============
@@ -226,9 +228,7 @@ Retrieve field instances
     Returns a list of fields given a list of field types and filters.
 
     get_fields() takes a set of flags as parameters and returns a tuple of field instances.
-    The flags are a combination of field types and field filters. All possible combinations
-    of filters and fields are possible, although some will have no effect (such as
-    ``include_hidden`` combined with ``pure_data`` or ``pure_m2m`` by itself).
+    The flags are a combination of field types and field filters.
 
     .. code-block:: python
 
@@ -252,6 +252,32 @@ Retrieve field instances
         (<RelatedObject: auth:user_groups related to user>,
          <RelatedObject: auth:user_user_permissions related to user>,
          <RelatedObject: admin:logentry related to user>)
+
+        The flags are a combination of field types and field filters. All possible combinations
+        of filters and fields are possible, although some will have no effect (such as
+        ``include_hidden`` combined with ``pure_data`` or ``pure_m2m`` by itself).
+
+    +-----------------+-------------------------+--------------------------------+
+    |                 | Include Hidden          | Include Parents                |
+    +=================+=========================+================================+
+    | Pure data       |                         | Does recursive call to parents |
+    +-----------------+-------------------------+--------------------------------+
+    | Pure M2M        |                         | Does recursive call to parents |
+    +-----------------+-------------------------+--------------------------------+
+    | Pure virtual    |                         |                                |
+    +-----------------+-------------------------+--------------------------------+
+    | Relation data   |                         | Does recursive call to parents |
+    +-----------------+-------------------------+--------------------------------+
+    | Relation virtual|                         |                                |
+    +-----------------+-------------------------+--------------------------------+
+    | Relation M2M    |                         | Does recursive call to parents |
+    +-----------------+-------------------------+--------------------------------+
+    | Related data    | Adds hidden relations   | Does recursive call to parents |
+    +-----------------+-------------------------+--------------------------------+
+    | Related M2M     |                         | Does recursive call to parents |
+    +-----------------+-------------------------+--------------------------------+
+    | Related virtual |                         |                                |
+    +-----------------+-------------------------+--------------------------------+
 
 ``Fast-Access API``
 ===================

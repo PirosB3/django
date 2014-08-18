@@ -615,7 +615,8 @@ escaping HTML.
 
     Tries to remove anything that looks like an HTML tag from the string, that
     is anything contained within ``<>``.
-    Absolutely NO guaranty is provided about the resulting string being entirely
+
+    Absolutely NO guarantee is provided about the resulting string being
     HTML safe. So NEVER mark safe the result of a ``strip_tag`` call without
     escaping it first, for example with :func:`~django.utils.html.escape`.
 
@@ -629,11 +630,21 @@ escaping HTML.
     If you are looking for a more robust solution, take a look at the `bleach`_
     Python library.
 
-    .. _bleach: https://pypi.python.org/pypi/bleach
-
 .. function:: remove_tags(value, tags)
 
+    .. deprecated:: 1.8
+
+        ``remove_tags()`` cannot guarantee HTML safe output and has been
+        deprecated due to security concerns. Consider using `bleach`_ instead.
+
     Removes a space-separated list of [X]HTML tag names from the output.
+
+    Absolutely NO guarantee is provided about the resulting string being HTML
+    safe. In particular, it doesn't work recursively, so the output of
+    ``remove_tags("<sc<script>ript>alert('XSS')</sc</script>ript>", "script")``
+    won't remove the "nested" script tags. So if the ``value`` is untrusted,
+    NEVER mark safe the result of a ``remove_tags()`` call without escaping it
+    first, for example with :func:`~django.utils.html.escape`.
 
     For example::
 
@@ -648,6 +659,7 @@ escaping HTML.
     the return value will be ``"<B>Joel</B> <button>is</button> a slug"``.
 
 .. _str.format: http://docs.python.org/library/stdtypes.html#str.format
+.. _bleach: https://pypi.python.org/pypi/bleach
 
 ``django.utils.http``
 =====================

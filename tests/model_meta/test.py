@@ -310,6 +310,7 @@ class RelationTreeTests(test.TestCase):
         Person._meta.get_fields(
             pure_m2m=True, pure_data=True, pure_virtual=True,
             relation_data=True, relation_m2m=True, relation_virtual=True,
+            relatd_objects=True, related_m2m=True, related_virtual=True,
             cache_results=False)
         for model in related_models:
             for c in model._meta._get_fields_cache.keys():

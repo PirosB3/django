@@ -337,7 +337,7 @@ class Options(object):
         Returns a list of all data fields on the model and its parents.
         All hidden and proxy fields are omitted.
         """
-        return self._make_immutable_fields_list(self.get_fields())
+        return self._make_immutable_fields_list(self.get_fields(cache_results=False))
 
     @cached_property
     def concrete_fields(self):
@@ -370,7 +370,8 @@ class Options(object):
         its parents.
         All hidden and proxy fields are omitted.
         """
-        return self._make_immutable_fields_list(self.get_fields(pure_data=False, relation_data=False, relation_m2m=True))
+        return self._make_immutable_fields_list(self.get_fields(pure_data=False, relation_data=False,
+                                                relation_m2m=True, cache_results=False))
 
     @raise_deprecation(suggested_alternative="get_fields()")
     def get_m2m_with_model(self):
@@ -554,13 +555,15 @@ class Options(object):
 
         all_models = self.apps.get_models(include_auto_created=True)
         for model in all_models:
-            for f in model._meta.get_fields(pure_data=False, relation_data=True, related_virtual=True):
+            for f in model._meta.get_fields(pure_data=False, relation_data=True, related_virtual=True,
+                                            cache_results=False):
                 # Set options_instance -> field
                 related_objects_graph[f.rel.to._meta].append(f)
 
             if not model._meta.auto_created:
                 # Many to many relations are never auto-created
-                for f in model._meta.get_fields(pure_data=False, relation_data=False, relation_m2m=True):
+                for f in model._meta.get_fields(pure_data=False, relation_data=False, relation_m2m=True,
+                                                cache_results=False):
                     # Set options_instance -> field
                     related_m2m_graph[f.rel.to._meta].append(f)
 
@@ -632,6 +635,7 @@ class Options(object):
         """
 
         # Creates a cache key composed of all arguments
+        cache_results = kwargs.pop('cache_results', True)
         export_name_map = kwargs.pop('export_name_map', False)
         cache_key = (pure_m2m, pure_data, pure_virtual,
                      relation_m2m, relation_data, relation_virtual,
@@ -656,7 +660,7 @@ class Options(object):
                 # in this call
                 for parent in self.parents:
                     for obj, query_name in six.iteritems(parent._meta.get_fields(pure_data=False, relation_data=False, related_m2m=True,
-                                                         export_name_map=True)):
+                                                         cache_results=cache_results, export_name_map=True)):
                         # In order for a related M2M object to be valid, its creation
                         # counter must be > 0 and must be in the parent list
                         if not (obj.field.creation_counter < 0
@@ -679,7 +683,7 @@ class Options(object):
                 # in this call
                 for parent in self.parents:
                     for obj, query_name in six.iteritems(parent._meta.get_fields(pure_data=False, relation_data=False, related_objects=True,
-                                                         include_hidden=True, export_name_map=True)):
+                                                         include_hidden=True, cache_results=cache_results, export_name_map=True)):
                         if not ((obj.field.creation_counter < 0
                                 or obj.field.rel.parent_link)
                                 and obj.model not in parent_list):
@@ -704,7 +708,8 @@ class Options(object):
             if include_parents:
                 for parent in self.parents:
                     # Extend the fields dict with all the m2m fields of each parent.
-                    fields.update(parent._meta.get_fields(pure_data=False, relation_data=False, relation_m2m=True, export_name_map=True))
+                    fields.update(parent._meta.get_fields(pure_data=False, relation_data=False, relation_m2m=True,
+                                                          cache_results=cache_results, export_name_map=True))
             fields.update(
                 (field, {field.name, field.attname})
                 for field in self.local_many_to_many
@@ -714,7 +719,8 @@ class Options(object):
             if include_parents:
                 for parent in self.parents:
                     # Extend the fields dict with all the data fields of each parent.
-                    fields.update(parent._meta.get_fields(pure_data=pure_data, relation_data=relation_data, export_name_map=True))
+                    fields.update(parent._meta.get_fields(pure_data=pure_data, relation_data=relation_data,
+                                                          cache_results=cache_results, export_name_map=True))
             for f in self.local_fields:
                 if pure_data and relation_data:
                     fields[f] = {f.name, f.attname}
@@ -745,9 +751,10 @@ class Options(object):
             # if the field instance as values. when get_fields is called, we only want to
             # return field instances, so we just preserve the keys.
             fields = self._make_immutable_fields_list(fields.keys())
-            # Store result into cache for later access
 
-        self._get_fields_cache[cache_key] = fields
+        # Store result into cache for later access
+        if cache_results:
+            self._get_fields_cache[cache_key] = fields
         return fields
 
     @cached_property
@@ -760,7 +767,8 @@ class Options(object):
         return self.get_fields(
             pure_data=False, pure_m2m=False, pure_virtual=False,
             relation_data=False, relation_m2m=False, relation_virtual=False,
-            related_objects=True, related_m2m=False, related_virtual=False)
+            related_objects=True, related_m2m=False, related_virtual=False,
+            cache_results=False)
 
     @cached_property
     def related_m2m(self):
@@ -772,7 +780,8 @@ class Options(object):
         return self.get_fields(
             pure_data=False, pure_m2m=False, pure_virtual=False,
             relation_data=False, relation_m2m=False, relation_virtual=False,
-            related_objects=False, related_m2m=True, related_virtual=False)
+            related_objects=False, related_m2m=True, related_virtual=False,
+            cache_results=False)
 
     @cached_property
     def field_names(self):

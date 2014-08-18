@@ -798,5 +798,5 @@ class Options(object):
             export_name_map=True
         )
         for _, names in six.iteritems(fields):
-            res.update(name for name in names)
+            res.update(name for name in names if not name.endswith('+'))
         return res

@@ -574,18 +574,15 @@ class Options(object):
 
         all_models = self.apps.get_models(include_auto_created=True)
         for model in all_models:
-            for f in chain(model._meta.fields, model._meta.virtual_fields):
+            for f in chain(model._meta.get_fields()):
                 # Check if the field has a relation to another model
                 if f.has_relation and f.generate_reverse_relation:
                     # Set options_instance -> field
-                    related_objects_graph[f.rel.to._meta].append(f)
-
-            if not model._meta.auto_created:
-                # Many to many relations are never auto-created
-                for f in model._meta.many_to_many:
-                    # Check if the field has a relation to another model
-                    if f.has_relation and not isinstance(f.rel.to, six.string_types):
-                        # Set options_instance -> field
+                    if f.has_many_values:
+                        if not model._meta.auto_created:
+                            if not isinstance(f.rel.to, six.string_types):
+                                related_objects_graph[f.rel.to._meta].append(f)
+                    else:
                         related_objects_graph[f.rel.to._meta].append(f)
 
         for model in all_models:
@@ -696,11 +693,15 @@ class Options(object):
             # a list of fields pointing to the current model from other models.
             # If the model is a proxy model, then we also add the concrete model.
             all_fields = self._relation_tree if not self.proxy else chain(self._relation_tree,
-                                                                   self.concrete_model._meta._relation_tree)
+                                                                          self.concrete_model._meta._relation_tree)
             for f in all_fields:
                 # If hidden fields should be included or the relation
                 # is not intentionally hidden, add to the fields dict
                 if include_hidden or not f.related.field.rel.is_hidden():
+                    fields[f.related] = {f.related_query_name()}
+
+            for f in self.virtual_fields:
+                if f.is_reverse_object:
                     fields[f.related] = {f.related_query_name()}
 
         if forward:
@@ -708,9 +709,10 @@ class Options(object):
                 for parent in self.parents:
                     # Extend the fields dict with all the m2m fields of each parent.
                     fields.update(parent._meta.get_fields(**options))
+            forward_virtual_fields = (f for f in self.virtual_fields if not f.is_reverse_object)
             fields.update(
                 (field, {field.name, field.attname})
-                for field in chain(self.local_fields, self.local_many_to_many)
+                for field in chain(self.local_fields, self.local_many_to_many, forward_virtual_fields)
             )
 
         if not export_name_map:

@@ -34,11 +34,16 @@ class GenericForeignKey(FieldFlagsMixin):
         self.column = None
         self.has_many_values = False
 
+    def related_query_name(self):
+        return '+'
+
     def contribute_to_class(self, cls, name, **kwargs):
         self.name = name
+        self.attname = name
 
         # Set model to cls (as it is not associated to anything)
         # and parent_model to cls (because it belongs to cls)
+        self.opts = cls._meta
         self.model = cls
         self.parent_model = cls
 

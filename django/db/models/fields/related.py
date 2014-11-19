@@ -549,7 +549,7 @@ class ReverseSingleRelatedObjectDescriptor(object):
                 rel_obj = None
             else:
                 params = dict(
-                    (rh_field.attname, getattr(instance, lh_field.attname))
+                    (rh_field.name, getattr(instance, lh_field.attname))
                     for lh_field, rh_field in self.field.related_fields)
                 qs = self.get_queryset(instance=instance)
                 extra_filter = self.field.get_extra_descriptor_filter(instance)

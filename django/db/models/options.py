@@ -395,8 +395,6 @@ class Options(object):
     @cached_property
     def fields_map(self):
         res = {}
-
-        # call get_fields with export_name_map=true in order to have a field_instance -> names map
         fields = self.get_fields(forward=True, reverse=True, include_hidden=True,
                                  export_name_map=True, cache_results=False)
         fields.update(

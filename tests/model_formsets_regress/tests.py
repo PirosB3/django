@@ -46,7 +46,7 @@ class InlineFormsetTests(TestCase):
             form_set.save()
             usersite = UserSite.objects.all().values()
             self.assertEqual(usersite[0]['data'], 10)
-            self.assertEqual(usersite[0]['user_id'], 'apollo13')
+            self.assertEqual(usersite[0]['user'], 'apollo13')
         else:
             self.fail('Errors found on formset:%s' % form_set.errors)
 
@@ -64,7 +64,7 @@ class InlineFormsetTests(TestCase):
             form_set.save()
             usersite = UserSite.objects.all().values()
             self.assertEqual(usersite[0]['data'], 11)
-            self.assertEqual(usersite[0]['user_id'], 'apollo13')
+            self.assertEqual(usersite[0]['user'], 'apollo13')
         else:
             self.fail('Errors found on formset:%s' % form_set.errors)
 
@@ -84,9 +84,9 @@ class InlineFormsetTests(TestCase):
             form_set.save()
             usersite = UserSite.objects.all().values().order_by('data')
             self.assertEqual(usersite[0]['data'], 11)
-            self.assertEqual(usersite[0]['user_id'], 'apollo13')
+            self.assertEqual(usersite[0]['user'], 'apollo13')
             self.assertEqual(usersite[1]['data'], 42)
-            self.assertEqual(usersite[1]['user_id'], 'apollo13')
+            self.assertEqual(usersite[1]['user'], 'apollo13')
         else:
             self.fail('Errors found on formset:%s' % form_set.errors)
 

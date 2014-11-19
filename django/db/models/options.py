@@ -394,28 +394,9 @@ class Options(object):
 
     @cached_property
     def fields_map(self):
-        res = {}
-
         # call get_fields with export_name_map=true in order to have a field_instance -> names map
-        fields = self.get_fields(forward=True, reverse=True, include_hidden=True,
-                                 export_name_map=True, cache_results=False)
-        fields.update(
-            (field, {field.name, field.attname})
-            for field in self.virtual_fields
-            if hasattr(field, 'related')
-        )
-
-        for obj, names in six.iteritems(fields):
-            # Exclude any intentionally hidden related object.
-            if obj.is_reverse_object and hasattr(obj, 'field'):
-                if obj.field.rel.is_hidden() and not obj.field.has_many_values:
-                    continue
-
-            # map each possible name for a field to its field instance
-            for name in names:
-                res[name] = obj
-
-        return res
+        fields = chain(self.get_fields(forward=True, reverse=True), self.virtual_fields)
+        return dict((field.name, field) for field in fields)
 
     def get_field(self, field_name, **kwargs):
         """
@@ -429,7 +410,7 @@ class Options(object):
                 #to find related objects that point to this model.
                 return next(
                     f for f in self.get_fields()
-                    if f.name == field_name or f.attname == field_name
+                    if f.name == field_name
                 )
             except StopIteration:
                 raise FieldDoesNotExist('%s has no field named %r. The app cache isn\'t '
@@ -697,7 +678,7 @@ class Options(object):
                 # If hidden fields should be included or the relation
                 # is not intentionally hidden, add to the fields dict
                 if include_hidden or not field.hidden:
-                    fields[field] = {field.name}
+                    fields[field] = field.name
 
         if forward:
             if include_parents:
@@ -705,7 +686,7 @@ class Options(object):
                     # Extend the fields dict with all the forward fields of each parent.
                     fields.update(parent._meta.get_fields(**options))
             fields.update(
-                (field, {field.name, field.attname})
+                (field, field.name,)
                 for field in chain(self.local_fields, self.local_many_to_many)
             )
 

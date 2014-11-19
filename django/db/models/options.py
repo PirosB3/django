@@ -395,7 +395,7 @@ class Options(object):
     @cached_property
     def fields_map(self):
         # call get_fields with export_name_map=true in order to have a field_instance -> names map
-        fields = chain(self.get_fields(forward=True, reverse=True), self.virtual_fields)
+        fields = chain(self.get_fields(forward=True, reverse=True, include_hidden=True), self.virtual_fields)
         return dict((field.name, field) for field in fields)
 
     def get_field(self, field_name, **kwargs):

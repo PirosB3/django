@@ -44,7 +44,7 @@ class DeleteQuery(Query):
         for offset in range(0, len(pk_list), GET_ITERATOR_CHUNK_SIZE):
             self.where = self.where_class()
             self.add_q(Q(
-                **{field.attname + '__in': pk_list[offset:offset + GET_ITERATOR_CHUNK_SIZE]}))
+                **{field.name + '__in': pk_list[offset:offset + GET_ITERATOR_CHUNK_SIZE]}))
             self.do_query(self.get_meta().db_table, self.where, using=using)
 
     def delete_qs(self, query, using):

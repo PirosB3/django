@@ -1130,7 +1130,7 @@ class ValuesQuerySet(QuerySet):
         else:
             # Default to all fields.
             self.extra_names = None
-            self.field_names = [f.attname for f in self.model._meta.concrete_fields]
+            self.field_names = [f.name for f in self.model._meta.concrete_fields]
             self.aggregate_names = None
 
         self.query.select = []

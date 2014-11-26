@@ -335,14 +335,7 @@ class Apps(object):
         self.get_models.cache_clear()
         if self.ready:
             for model in self.get_models(include_auto_created=True):
-                try:
-                    del model._meta._relation_tree
-                except AttributeError:
-                    pass
-                try:
-                    del model._meta.fields_map
-                except AttributeError:
-                    pass
+                model._meta._expire_cache()
 
     ### DEPRECATED METHODS GO BELOW THIS LINE ###
 

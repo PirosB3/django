@@ -84,6 +84,7 @@ def make_immutable_fields_list(name, data):
 class Options(object):
     def __init__(self, meta, app_label=None):
         self._get_fields_cache = {}
+        self._get_fields_reverse_cache = {}
         self.proxied_children = []
         self.local_fields = []
         self.local_many_to_many = []
@@ -388,7 +389,7 @@ class Options(object):
         field relation type.
         """
         all_related_fields = self.get_fields(forward=False, reverse=True,
-                                             include_hidden=True, cache_results=True)
+                                             include_hidden=True)
         return make_immutable_fields_list(
             "related_objects",
             (obj for obj in all_related_fields
@@ -619,12 +620,12 @@ class Options(object):
     def _expire_cache(self):
         # When a new model is registered, we expire the
         # relation tree and any attribute that depends on it.
-        for cache_key in ('_relation_tree', 'fields_map',):
+        for cache_key in ('_relation_tree', 'fields_map', 'related_objects'):
             try:
                 delattr(self, cache_key)
             except AttributeError:
                 pass
-        self._get_fields_cache = {}
+        self._get_fields_reverse_cache = {}
 
     def get_fields(self, include_parents=True, include_hidden=False, **kwargs):
         """
@@ -640,7 +641,6 @@ class Options(object):
         forward = kwargs.pop('forward', True)
         reverse = kwargs.pop('reverse', True)
         export_name_map = kwargs.pop('export_name_map', False)
-        cache_results = kwargs.pop('cache_results', True)
         if kwargs:
             raise TypeError("'%s' are invalid keyword arguments" % ', '.join(kwargs.keys()))
 
@@ -648,7 +648,10 @@ class Options(object):
         try:
             # In order to avoid list manipulation. Always return a shallow copy
             # of the results
-            return self._get_fields_cache[cache_key]
+            if not forward and reverse:
+                return self._get_fields_reverse_cache[cache_key]
+            else:
+                return self._get_fields_cache[cache_key]
         except KeyError:
             pass
 
@@ -660,7 +663,6 @@ class Options(object):
             'include_parents': include_parents,
             'include_hidden': include_hidden,
             'export_name_map': True,
-            'cache_results': cache_results,
         }
 
         if reverse:
@@ -718,7 +720,9 @@ class Options(object):
             fields = make_immutable_fields_list("get_fields()", fields)
 
         # Store result into cache for later access
-        if cache_results:
+        if not forward and reverse:
+            self._get_fields_reverse_cache[cache_key] = fields
+        else:
             self._get_fields_cache[cache_key] = fields
         # In order to avoid list manipulation. Always
         # return a shallow copy of the results

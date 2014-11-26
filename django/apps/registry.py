@@ -330,12 +330,19 @@ class Apps(object):
 
         This is mostly used in tests.
         """
-        # Call expire cache on each model. This will purge
-        # the relation tree and the fields cache.
         self.get_models.cache_clear()
         if self.ready:
+            # Call expire cache on each model. This will purge
+            # the relation tree and the fields cache.
             for model in self.get_models(include_auto_created=True):
-                model._meta._expire_cache()
+                try:
+                    del model._meta._relation_tree
+                except AttributeError:
+                    pass
+                try:
+                    del model._meta.fields_map
+                except AttributeError:
+                    pass
 
     ### DEPRECATED METHODS GO BELOW THIS LINE ###
 

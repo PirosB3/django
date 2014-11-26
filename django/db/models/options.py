@@ -83,8 +83,8 @@ def make_immutable_fields_list(name, data):
 @python_2_unicode_compatible
 class Options(object):
     def __init__(self, meta, app_label=None):
-        self._get_fields_cache = {}
-        self._get_fields_reverse_cache = {}
+        self._get_forward_fields_cache = {}
+        self._get_reverse_fields_cache = {}
         self.proxied_children = []
         self.local_fields = []
         self.local_many_to_many = []
@@ -627,11 +627,14 @@ class Options(object):
                 delattr(self, cache_key)
             except AttributeError:
                 pass
-        self._get_reverse_fields.cache_clear()
-        self.get_fields.cache_clear()
+        self._get_reverse_fields_cache = {}
 
-    @lru_cache(maxsize=None)
     def _get_forward_fields(self, include_parents=True, include_hidden=False, _export_map=False):
+        cache_key = (include_parents, include_hidden, _export_map)
+        try:
+            return self._get_forward_fields_cache[cache_key]
+        except KeyError:
+            pass
         fields = OrderedDict()
         options = {
             'include_parents': include_parents,
@@ -649,10 +652,15 @@ class Options(object):
         if not _export_map:
             fields = list(fields.keys())
             fields.extend(self.virtual_fields)
+            self._get_forward_fields_cache[cache_key] = fields
         return fields
 
-    @lru_cache(maxsize=None)
     def _get_reverse_fields(self, include_parents=True, include_hidden=False, _export_map=False):
+        cache_key = (include_parents, include_hidden, _export_map)
+        try:
+            return self._get_reverse_fields_cache[cache_key]
+        except KeyError:
+            pass
         fields = OrderedDict()
         options = {
             'include_parents': include_parents,
@@ -691,9 +699,9 @@ class Options(object):
 
         if not _export_map:
             fields = list(fields.keys())
+            self._get_reverse_fields_cache[cache_key] = fields
         return fields
 
-    @lru_cache(maxsize=None)
     def get_fields(self, include_parents=True, include_hidden=False):
         """
         Returns a list of fields associated to the model. By default will only return forward fields.

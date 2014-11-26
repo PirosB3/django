@@ -324,7 +324,7 @@ class Apps(object):
         self.clear_cache()
 
 
-    def clear_cache(self):
+    def clear_cache(self, expire_reverse_fields=False):
         """
         Clears all internal caches, for methods that alter the app registry.
 
@@ -335,7 +335,7 @@ class Apps(object):
         self.get_models.cache_clear()
         if self.ready:
             for model in self.get_models(include_auto_created=True):
-                model._meta._expire_cache()
+                model._meta._expire_cache(expire_reverse_fields=expire_reverse_fields)
 
     ### DEPRECATED METHODS GO BELOW THIS LINE ###
 

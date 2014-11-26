@@ -8,7 +8,7 @@ class RelatedObjectTests(TestCase):
 
     def test_related_objects_have_name_attribute(self):
         for Model in (Issue, User, UnicodeReferenceModel,):
-            for obj in Model._meta.get_fields(forward=False, reverse=True):
+            for obj in Model._meta._get_reverse_fields():
                 self.assertEqual(obj.name, obj.field.related_query_name())
 
     def test_m2m_and_m2o(self):
